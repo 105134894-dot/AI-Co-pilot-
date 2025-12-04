@@ -3,8 +3,8 @@ from fastapi import FastAPI
 from pydantic import BaseModel
 from dotenv import load_dotenv
 from pinecone import Pinecone, ServerlessSpec
-from fastapi.middleware.cors import CORSMiddleware
 import google.generativeai as genai
+from fastapi.middleware.cors import CORSMiddleware
 
 # --------------------------------------
 # Load environment variables
@@ -30,14 +30,13 @@ if not PINECONE_INDEX_NAME:
 genai.configure(api_key=GEMINI_API_KEY)
 
 embed_model = "models/text-embedding-004"
-chat_model = "models/gemini-flash-latest"   # ✅ This model exists for your key
+chat_model = "models/gemini-flash-latest"
 
 # --------------------------------------
 # Configure Pinecone
 # --------------------------------------
 pc = Pinecone(api_key=PINECONE_API_KEY)
 
-# Create the index if missing
 if PINECONE_INDEX_NAME not in pc.list_indexes().names():
     pc.create_index(
         name=PINECONE_INDEX_NAME,
@@ -53,6 +52,23 @@ index = pc.Index(PINECONE_INDEX_NAME)
 # --------------------------------------
 app = FastAPI()
 
+# --- CORS ---
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:5173",
+        "http://localhost:5174",
+        "http://localhost:5175",
+        "http://127.0.0.1:5173",
+        "http://127.0.0.1:5174",
+        "http://127.0.0.1:5175",
+        "*",    
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 class ChatRequest(BaseModel):
     query: str
     top_k: int = 3
@@ -61,33 +77,25 @@ class ChatRequest(BaseModel):
 def home():
     return {"message": "AI Co-Pilot backend running with Gemini + Pinecone!"}
 
-# --------------------------------------
-# CHAT ENDPOINT
-# --------------------------------------
 @app.post("/chat")
 def chat(req: ChatRequest):
-
-    # 1. Embed the query text
     embedding = genai.embed_content(
         model=embed_model,
         content=req.query
     )["embedding"]
 
-    # 2. Query Pinecone
     search_results = index.query(
         vector=embedding,
         top_k=req.top_k,
         include_metadata=True
     )
 
-    # 3. Build context from results
     matches = search_results.get("matches", [])
     context = "\n\n".join([
         match.get("metadata", {}).get("text", "")
         for match in matches
     ])
 
-    # 4. Gemini request
     prompt = f"""
     You are MIV's AI Co-Pilot. Use the context below to answer the question clearly and helpfully.
 
