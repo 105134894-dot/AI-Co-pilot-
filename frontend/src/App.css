@@ -1,318 +1,356 @@
-/* src/App.css */
-
-/* ---------- Base reset ---------- */
-:root {
-  --miv-brand-blue: #007ea7;
-  --miv-brand-teal: #00a896;
-  --miv-brand-green: #2bb673;
-  --miv-bg-soft: #e5f4ef;
-  --miv-bg-card: #f9fcfb;
-  --miv-border-soft: #c1ded6;
-  --miv-text-main: #05313b;
-  --miv-text-muted: #4a6a70;
-  --miv-error: #b00020;
-  --shadow-elevated: 0 18px 45px rgba(0, 0, 0, 0.35);
-  --radius-lg: 20px;
-  --radius-pill: 999px;
-}
-
-*,
-*::before,
-*::after {
-  box-sizing: border-box;
-}
-
-body {
-  margin: 0;
+/* Root container that pins the widget to bottom-right */
+.miv-widget-root {
+  position: fixed;
+  inset: auto 1.5rem 1.5rem auto;
+  z-index: 9999;
   font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
     sans-serif;
 }
 
-/* ---------- Hidden for screen readers ---------- */
+/* Launcher pill */
+.miv-launcher-btn {
+  border: none;
+  padding: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.miv-launcher-img {
+  display: block;
+  max-width: 220px;
+  height: auto;
+}
+
+/* Chat window */
+.miv-chat-window {
+  --miv-radius: 18px;
+  --miv-bg: #5ba085; /* teal-green like mockup */
+  --miv-header-text: #ffffff;
+  --miv-body-bg: #fdfdfd;
+  --miv-user-bubble: #ffffff;;
+  --miv-user-text: #000000; /* ✅ black text on white bubble */
+  --miv-assistant-bubble: #144050;
+  --miv-assistant-text: #ffffff;
+  --miv-input-bg: #ffffff;
+  --miv-border-subtle: rgba(0, 0, 0, 0.08);
+
+  width: min(440px, 92vw);
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  border-radius: var(--miv-radius);
+  background: var(--miv-bg);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.35);
+  overflow: hidden;
+  color: #102329;
+  font-size: calc(14px * var(--miv-font-scale, 1));
+}
+
+/* High contrast mode */
+.miv-chat-window--high-contrast {
+  --miv-bg: #050505;
+  --miv-header-text: #ffffff;
+  --miv-body-bg: #000000;
+  --miv-user-bubble: #ffffff;
+  --miv-user-text: #000000; /* ✅ still black text on white bubble */
+  --miv-assistant-bubble: #000000;
+  --miv-assistant-text: #ffffff;
+  --miv-input-bg: #111111;
+  color: #ffffff;
+}
+
+/* Header */
+.miv-chat-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.85rem 0.9rem 0.75rem;
+  color: var(--miv-header-text);
+  position: relative;
+}
+
+.miv-header-left {
+  flex-shrink: 0;
+}
+
+.miv-logo {
+  height: 38px;
+  width: auto;
+  display: block;
+  border-radius: 4px;
+}
+
+.miv-header-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  flex: 1;
+  text-align: left;
+}
+
+/* Close + A11y */
+.miv-close-btn,
+.miv-a11y-toggle {
+  border: none;
+  background: rgba(0, 0, 0, 0.18);
+  color: #ffffff;
+  width: 26px;
+  height: 26px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  margin-left: 0.3rem;
+}
+
+.miv-close-btn:hover,
+.miv-a11y-toggle:hover {
+  background: rgba(0, 0, 0, 0.32);
+}
+
+/* Accessibility panel */
+.miv-a11y-panel {
+  position: absolute;
+  top: 54px;
+  right: 10px;
+  background: var(--miv-body-bg);
+  color: inherit;
+  border-radius: 10px;
+  padding: 0.75rem 0.9rem;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.3);
+  width: 210px;
+  font-size: 0.82rem;
+  border: 1px solid var(--miv-border-subtle);
+  z-index: 5;
+}
+
+/* Force accessibility panel text to be black in normal mode */
+.miv-a11y-panel,
+.miv-a11y-panel * {
+  color: #000000 !important;
+}
+
+/* High contrast mode overrides */
+.miv-chat-window--high-contrast .miv-a11y-panel,
+.miv-chat-window--high-contrast .miv-a11y-panel * {
+  color: #ffffff !important;
+}
+
+
+.miv-a11y-panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-weight: 600;
+  margin-bottom: 0.35rem;
+}
+
+.miv-a11y-close {
+  border: none;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  font-size: 1rem;
+}
+
+.miv-a11y-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 0.35rem;
+}
+
+.miv-a11y-label {
+  flex: 1;
+}
+
+.miv-a11y-controls {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.miv-a11y-btn {
+  border-radius: 999px;
+  border: 1px solid var(--miv-border-subtle);
+  padding: 0.15rem 0.4rem;
+  background: #ffffff;
+  cursor: pointer;
+  font-size: 0.78rem;
+}
+
+.miv-chat-window--high-contrast .miv-a11y-btn {
+  background: #111111;
+  color: #ffffff;
+}
+
+.miv-a11y-btn--full {
+  width: 100%;
+  text-align: center;
+}
+
+/* Quick questions */
+.miv-quick-questions {
+  background: var(--miv-bg);
+  padding: 0 0.9rem 0.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.miv-chip {
+  border-radius: 999px;
+  border: none;
+  background: rgba(255, 255, 255, 0.85);
+  padding: 0.3rem 0.75rem;
+  font-size: 0.78rem;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  cursor: pointer;
+  text-align: left;
+  color: #000000;   /* ✅ force black text */
+}
+
+.miv-chat-window--high-contrast .miv-chip {
+  background: #ffffff;
+  color: #111111; /* still dark for HC mode */
+}
+
+
+.miv-chip-icon {
+  flex-shrink: 0;
+}
+
+.miv-chip-text {
+  line-height: 1.25;
+}
+
+/* Messages area */
+.miv-messages {
+  background: var(--miv-body-bg);
+  padding: 0.6rem 0.9rem;
+  flex: 1;
+  overflow-y: auto;
+}
+
+.miv-message {
+  max-width: 100%;
+  border-radius: 999px;
+  padding: 0.4rem 0.8rem;
+  margin-bottom: 0.3rem;
+  font-size: 0.8rem;
+  line-height: 1.35;
+}
+
+.miv-message--assistant {
+  background: var(--miv-assistant-bubble);
+  color: var(--miv-assistant-text);
+  align-self: flex-start;
+}
+
+.miv-message--user {
+  background: var(--miv-user-bubble);
+  color: var(--miv-user-text); /* ✅ use dark text variable */
+  align-self: flex-end;
+  margin-left: auto;
+}
+
+/* Typing indicator */
+.miv-message--typing {
+  display: inline-flex;
+  gap: 0.2rem;
+}
+
+.miv-dot {
+  width: 4px;
+  height: 4px;
+  border-radius: 999px;
+  background: var(--miv-assistant-text);
+  animation: miv-bounce 0.9s infinite ease-in-out;
+}
+
+.miv-dot:nth-child(2) {
+  animation-delay: 0.15s;
+}
+
+.miv-dot:nth-child(3) {
+  animation-delay: 0.3s;
+}
+
+@keyframes miv-bounce {
+  0%,
+  80%,
+  100% {
+    transform: translateY(0);
+    opacity: 0.5;
+  }
+  40% {
+    transform: translateY(-3px);
+    opacity: 1;
+  }
+}
+
+/* Input row */
+.miv-input-row {
+  background: var(--miv-input-bg);
+  padding: 0.55rem 0.9rem 0.7rem;
+  border-top: 1px solid var(--miv-border-subtle);
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.miv-input {
+  flex: 1;
+  border-radius: 999px;
+  border: 1px solid var(--miv-border-subtle);
+  padding: 0.4rem 0.75rem;
+  font-size: 0.82rem;
+  background: inherit;
+  color: inherit;
+}
+
+.miv-input:focus {
+  outline: 2px solid #ffffff;
+  outline-offset: 1px;
+}
+
+.miv-send-btn {
+  border-radius: 999px;
+  border: none;
+  background: #0e5c82;
+  color: #ffffff;
+  padding: 0.4rem 0.8rem;
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+
+.miv-send-btn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+/* Screen-reader only text */
 .sr-only {
   position: absolute;
   width: 1px;
   height: 1px;
   padding: 0;
+  margin: -1px;
   overflow: hidden;
   clip: rect(0, 0, 0, 0);
   white-space: nowrap;
   border: 0;
 }
 
-/* ---------- Widget root ---------- */
-
-.miv-widget-root {
-  position: fixed;
-  inset: 0;
-  pointer-events: none; /* let page be clickable except widget */
-  z-index: 9999;
-}
-
-/* ---------- Launcher button ---------- */
-
-.miv-launcher {
-  position: absolute;
-  right: 1.5rem;
-  bottom: 1.5rem;
-  border: none;
-  padding: 0;
-  background: none;
-  cursor: pointer;
-  pointer-events: auto;
-}
-
-.miv-launcher-image {
-  display: block;
-  max-width: 260px;
-  width: min(260px, 45vw);
-}
-
-/* ---------- Chat panel (Option A style) ---------- */
-
-.miv-chat-panel {
-  position: absolute;
-  right: 1.5rem;
-  bottom: 5.5rem; /* sits above the launcher area */
-  width: min(420px, 92vw);
-  max-height: min(560px, 80vh);
-  display: flex;
-  flex-direction: column;
-  background: var(--miv-bg-card);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-elevated);
-  overflow: hidden;
-  color: var(--miv-text-main);
-  pointer-events: auto;
-}
-
-/* Header */
-
-.miv-chat-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0.85rem 1rem 0.85rem 1rem;
-  background: linear-gradient(
-    135deg,
-    var(--miv-brand-teal),
-    var(--miv-brand-green)
-  );
-  color: #ffffff;
-}
-
-.miv-header-left {
-  display: flex;
-  align-items: center;
-  gap: 0.6rem;
-  min-width: 0;
-}
-
-.miv-logo {
-  width: 54px;
-  height: auto;
-  border-radius: 10px;
-  background: #ffffff;
-  padding: 4px 6px;
-}
-
-.miv-title-block h2 {
-  margin: 0;
-  font-size: 1.05rem;
-  letter-spacing: 0.02em;
-}
-
-.miv-subtitle {
-  margin: 0.1rem 0 0;
-  font-size: 0.72rem;
-  opacity: 0.9;
-}
-
-.miv-header-actions {
-  display: flex;
-  align-items: center;
-  gap: 0.25rem;
-}
-
-/* Font controls */
-
-.miv-font-controls {
-  display: inline-flex;
-  align-items: center;
-  gap: 2px;
-  background: rgba(0, 0, 0, 0.18);
-  border-radius: 999px;
-  padding: 2px;
-}
-
-.miv-icon-button {
-  border: none;
-  background: transparent;
-  color: #ffffff;
-  font-size: 0.68rem;
-  padding: 4px 6px;
-  min-width: 28px;
-  cursor: pointer;
-  border-radius: 999px;
-}
-
-.miv-icon-button:hover,
-.miv-icon-button:focus-visible {
-  background: rgba(255, 255, 255, 0.18);
-  outline: none;
-}
-
-/* Close button */
-
-.miv-close-button {
-  border: none;
-  background: transparent;
-  color: #ffffff;
-  font-size: 1.2rem;
-  line-height: 1;
-  padding: 0.1rem 0.25rem;
-  cursor: pointer;
-  border-radius: 999px;
-}
-
-.miv-close-button:hover,
-.miv-close-button:focus-visible {
-  background: rgba(0, 0, 0, 0.18);
-  outline: none;
-}
-
-/* ---------- Body / messages ---------- */
-
-.miv-chat-body {
-  padding: 0.9rem 0.9rem 0.4rem;
-  background: var(--miv-bg-soft);
-  border-bottom: 1px solid var(--miv-border-soft);
-  overflow-y: auto;
-}
-
-.miv-message-list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 0.45rem;
-}
-
-.miv-message {
-  max-width: 90%;
-  font-size: 0.9rem;
-  line-height: 1.4;
-}
-
-.miv-message p {
-  margin: 0;
-  padding: 0.55rem 0.7rem;
-  border-radius: 12px;
-}
-
-/* Assistant message (left, teal bubble) */
-.miv-message-assistant {
-  align-self: flex-start;
-}
-
-.miv-message-assistant p {
-  background: #ffffff;
-  color: var(--miv-text-main);
-  border: 1px solid rgba(0, 0, 0, 0.04);
-}
-
-/* User message (right, dark bubble) */
-.miv-message-user {
-  align-self: flex-end;
-}
-
-.miv-message-user p {
-  background: var(--miv-brand-blue);
-  color: #ffffff;
-}
-
-/* Typing indicator style */
-.miv-message-typing p {
-  font-style: italic;
-}
-
-/* ---------- Input row ---------- */
-
-.miv-chat-input-row {
-  display: flex;
-  align-items: center;
-  gap: 0.45rem;
-  padding: 0.6rem 0.8rem;
-  background: var(--miv-bg-card);
-}
-
-.miv-chat-input {
-  flex: 1;
-  min-width: 0;
-  border-radius: 999px;
-  border: 1px solid var(--miv-border-soft);
-  padding: 0.55rem 0.9rem;
-  font-size: 0.9rem;
-  font-family: inherit;
-  color: var(--miv-text-main);
-}
-
-.miv-chat-input:focus-visible {
-  outline: 2px solid var(--miv-brand-blue);
-  outline-offset: 1px;
-  border-color: transparent;
-}
-
-.miv-send-button {
-  border-radius: 999px;
-  border: none;
-  padding: 0.55rem 1rem;
-  font-size: 0.88rem;
-  font-weight: 600;
-  cursor: pointer;
-  background: var(--miv-brand-blue);
-  color: #ffffff;
-  white-space: nowrap;
-}
-
-.miv-send-button:disabled {
-  opacity: 0.5;
-  cursor: default;
-}
-
-.miv-send-button:not(:disabled):hover,
-.miv-send-button:not(:disabled):focus-visible {
-  background: #005f7a;
-  outline: none;
-}
-
-/* ---------- Footer hint ---------- */
-
-.miv-footer-hint {
-  padding: 0.4rem 0.85rem 0.75rem;
-  background: var(--miv-bg-card);
-  border-top: 1px solid rgba(255, 255, 255, 0.6);
-}
-
-.miv-footer-hint p {
-  margin: 0;
-  font-size: 0.75rem;
-  color: var(--miv-text-muted);
-}
-
-/* ---------- Responsive tweaks ---------- */
-
-@media (max-width: 640px) {
-  .miv-launcher-image {
-    max-width: 220px;
+/* Small screens: let widget breathe a little more */
+@media (max-width: 600px) {
+  .miv-widget-root {
+    inset: auto 0.75rem 0.75rem auto;
   }
 
-  .miv-chat-panel {
-    right: 0.75rem;
-    left: 0.75rem;
-    bottom: 5rem;
-    width: auto;
-    max-height: 75vh;
+  .miv-chat-window {
+    width: min(100vw - 1.5rem, 420px);
+    max-height: 85vh;
   }
 }
