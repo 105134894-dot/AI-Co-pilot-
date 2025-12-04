@@ -1,0 +1,12 @@
+# Virtual env
+.venv/
+
+# Python cache
+__pycache__/
+
+# Environment variables
+.env
+backend/.env
+
+# macOS junk
+.DS_Store
