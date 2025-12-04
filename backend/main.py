@@ -3,6 +3,7 @@ from fastapi import FastAPI
 from pydantic import BaseModel
 from dotenv import load_dotenv
 from pinecone import Pinecone, ServerlessSpec
+from fastapi.middleware.cors import CORSMiddleware
 import google.generativeai as genai
 
 # --------------------------------------
