@@ -225,35 +225,47 @@
   line-height: 1.25;
 }
 
-/* Messages area */
+/* Messages area – ChatGPT-style cards, no long pill bubbles */
 .miv-messages {
   background: var(--miv-body-bg);
-  padding: 0.6rem 0.9rem;
+  padding: 0.8rem 1rem;
   flex: 1;
   overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
 }
 
+/* Base message block */
 .miv-message {
   max-width: 100%;
-  border-radius: 999px;
-  padding: 0.4rem 0.8rem;
-  margin-bottom: 0.3rem;
-  font-size: 0.8rem;
-  line-height: 1.35;
+  border-radius: 16px;           /* normal rounded corners, not a pill */
+  padding: 0.75rem 1rem;
+  font-size: 0.85rem;
+  line-height: 1.5;
+  white-space: pre-wrap;         /* keep line breaks from Gemini */
 }
 
+/* Assistant (MIV Co-Pilot) message */
 .miv-message--assistant {
-  background: var(--miv-assistant-bubble);
-  color: var(--miv-assistant-text);
-  align-self: flex-start;
+  background: #0b3b4d;           /* deep teal, matches mockup footer */
+  color: #f9fafb;
+  align-self: stretch;           /* full width like ChatGPT */
 }
 
+/* User message */
 .miv-message--user {
-  background: var(--miv-user-bubble);
-  color: var(--miv-user-text); /* ✅ use dark text variable */
-  align-self: flex-end;
-  margin-left: auto;
+  background: #ffffff;
+  color: #111827;
+  border: 1px solid var(--miv-border-subtle);
+  align-self: flex-end;          /* nudged to the right */
 }
+
+/* Make paragraphs inside messages breathe a bit */
+.miv-message p + p {
+  margin-top: 0.4rem;
+}
+
 
 /* Typing indicator */
 .miv-message--typing {
