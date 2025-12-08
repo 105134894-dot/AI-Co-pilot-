@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>MIV AI Co-Pilot – Widget Demo</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="stylesheet" href="miv-widget.css" />
+    <style>
+      body {
+        margin: 0;
+        min-height: 100vh;
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+          sans-serif;
+        background: #0e4b3f;
+        color: #ffffff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .demo-page {
+        max-width: 900px;
+        width: 100%;
+        padding: 2rem;
+      }
+      .demo-hero {
+        margin-bottom: 1.5rem;
+      }
+      .demo-hero h1 {
+        margin: 0 0 0.5rem;
+      }
+      .demo-hero p {
+        margin: 0;
+        max-width: 600px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="demo-page">
+      <div class="demo-hero">
+        <h1>MIV Website (Demo)</h1>
+        <p>
+          This page shows how the MIV AI Co-Pilot widget will appear in the
+          bottom-right corner of the site and connect to the AI backend.
+        </p>
+      </div>
+    </div>
+
+    <!-- WIDGET HTML -->
+    <div class="miv-widget-root" id="miv-widget-root">
+      <!-- Launcher button -->
+      <button
+        class="miv-launcher-btn"
+        id="miv-launcher-btn"
+        aria-label="Open MIV AI Co-Pilot"
+      >
+        <img
+          src="miv-button.png"
+          alt="MIV AI Co-Pilot"
+          class="miv-launcher-img"
+        />
+      </button>
+
+      <!-- Chat window -->
+      <div
+        class="miv-chat-window"
+        id="miv-chat-window"
+        role="dialog"
+        aria-modal="true"
+        aria-label="MIV AI Co-Pilot chat"
+        aria-hidden="true"
+      >
+        <!-- Header -->
+        <header class="miv-chat-header">
+          <div class="miv-header-left">
+            <img
+              src="miv-logo.jpg"
+              alt="Mekong Inclusive Ventures"
+              class="miv-logo"
+            />
+          </div>
+          <div class="miv-header-title">AI Co-Pilot</div>
+
+          <button
+            class="miv-a11y-toggle"
+            id="miv-a11y-toggle"
+            aria-label="Accessibility settings"
+            type="button"
+          >
+            <span aria-hidden="true">♿</span>
+          </button>
+
+          <button
+            class="miv-close-btn"
+            id="miv-close-btn"
+            aria-label="Close MIV AI Co-Pilot"
+            type="button"
+          >
+            ×
+          </button>
+        </header>
+
+        <!-- Accessibility panel -->
+        <section
+          class="miv-a11y-panel"
+          id="miv-a11y-panel"
+          aria-label="Accessibility settings"
+          hidden
+        >
+          <div class="miv-a11y-panel-header">
+            <span>Accessibility Settings</span>
+            <button
+              class="miv-a11y-close"
+              id="miv-a11y-close"
+              aria-label="Close accessibility settings"
+              type="button"
+            >
+              ×
+            </button>
+          </div>
+
+          <div class="miv-a11y-row">
+            <span class="miv-a11y-label">Font size</span>
+            <div class="miv-a11y-controls">
+              <button
+                type="button"
+                class="miv-a11y-btn"
+                id="miv-font-dec"
+                aria-label="Decrease font size"
+              >
+                A-
+              </button>
+              <button
+                type="button"
+                class="miv-a11y-btn"
+                id="miv-font-inc"
+                aria-label="Increase font size"
+              >
+                A+
+              </button>
+            </div>
+          </div>
+
+          <div class="miv-a11y-row">
+            <span class="miv-a11y-label">Contrast</span>
+            <button
+              type="button"
+              class="miv-a11y-btn miv-a11y-btn--full"
+              id="miv-contrast-toggle"
+              aria-pressed="false"
+            >
+              Enable high contrast
+            </button>
+          </div>
+        </section>
+
+        <!-- Quick questions -->
+        <section
+          class="miv-quick-questions"
+          aria-label="Suggested questions"
+          id="miv-quick-questions"
+        >
+          <button
+            class="miv-chip"
+            type="button"
+            data-question="How do I make sure my online forms are accessible?"
+          >
+            <span class="miv-chip-icon" aria-hidden="true">❇</span>
+            <span class="miv-chip-text">
+              How do I make sure my online forms are accessible?
+            </span>
+          </button>
+          <button
+            class="miv-chip"
+            type="button"
+            data-question="What tools can help someone with low vision use my digital content more easily?"
+          >
+            <span class="miv-chip-icon" aria-hidden="true">❇</span>
+            <span class="miv-chip-text">
+              What tools can help someone with low vision use my digital content
+              more easily?
+            </span>
+          </button>
+          <button
+            class="miv-chip"
+            type="button"
+            data-question="How do I make my event more accessible for people with different disabilities?"
+          >
+            <span class="miv-chip-icon" aria-hidden="true">❇</span>
+            <span class="miv-chip-text">
+              How do I make my event more accessible for people with different
+              disabilities?
+            </span>
+          </button>
+          <button
+            class="miv-chip"
+            type="button"
+            data-question="Can you help me find tools to support people with hearing impairments?"
+          >
+            <span class="miv-chip-icon" aria-hidden="true">❇</span>
+            <span class="miv-chip-text">
+              Can you help me find tools to support people with hearing
+              impairments?
+            </span>
+          </button>
+        </section>
+
+        <!-- Messages -->
+        <section class="miv-messages" aria-live="polite" id="miv-messages">
+          <!-- Messages injected by JS -->
+        </section>
+
+        <!-- Input -->
+        <form class="miv-input-row" id="miv-form">
+          <label class="sr-only" for="miv-user-input">
+            Ask the MIV AI Co-Pilot a question
+          </label>
+          <input
+            id="miv-user-input"
+            type="text"
+            class="miv-input"
+            placeholder="Ask me anything"
+          />
+          <button type="submit" class="miv-send-btn" id="miv-send-btn">
+            Send
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <script>
+      window.MIV_BACKEND_URL = "http://localhost:8000";
+    </script>
+    <script src="miv-widget.js" defer></script>
+  </body>
+</html>

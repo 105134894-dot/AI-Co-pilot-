@@ -24,19 +24,18 @@
 /* Chat window */
 .miv-chat-window {
   --miv-radius: 18px;
-  --miv-bg: #5ba085; /* teal-green like mockup */
+  --miv-bg: #5ba085;
   --miv-header-text: #ffffff;
   --miv-body-bg: #fdfdfd;
-  --miv-user-bubble: #ffffff;;
-  --miv-user-text: #000000; /* ✅ black text on white bubble */
-  --miv-assistant-bubble: #144050;
-  --miv-assistant-text: #ffffff;
+  --miv-user-bubble: #ffffff;
+  --miv-assistant-bubble: #fdfdfd;
+  --miv-assistant-text: #0d3040;
   --miv-input-bg: #ffffff;
   --miv-border-subtle: rgba(0, 0, 0, 0.08);
 
   width: min(440px, 92vw);
   max-height: 80vh;
-  display: flex;
+  display: none; /* hidden by default */
   flex-direction: column;
   border-radius: var(--miv-radius);
   background: var(--miv-bg);
@@ -46,13 +45,17 @@
   font-size: calc(14px * var(--miv-font-scale, 1));
 }
 
+/* visible state */
+.miv-chat-window.miv-chat-window--open {
+  display: flex;
+}
+
 /* High contrast mode */
 .miv-chat-window--high-contrast {
   --miv-bg: #050505;
   --miv-header-text: #ffffff;
   --miv-body-bg: #000000;
   --miv-user-bubble: #ffffff;
-  --miv-user-text: #000000; /* ✅ still black text on white bubble */
   --miv-assistant-bubble: #000000;
   --miv-assistant-text: #ffffff;
   --miv-input-bg: #111111;
@@ -124,19 +127,6 @@
   z-index: 5;
 }
 
-/* Force accessibility panel text to be black in normal mode */
-.miv-a11y-panel,
-.miv-a11y-panel * {
-  color: #000000 !important;
-}
-
-/* High contrast mode overrides */
-.miv-chat-window--high-contrast .miv-a11y-panel,
-.miv-chat-window--high-contrast .miv-a11y-panel * {
-  color: #ffffff !important;
-}
-
-
 .miv-a11y-panel-header {
   display: flex;
   justify-content: space-between;
@@ -200,7 +190,7 @@
 .miv-chip {
   border-radius: 999px;
   border: none;
-  background: rgba(255, 255, 255, 0.85);
+  background: rgba(255, 255, 255, 0.92);
   padding: 0.3rem 0.75rem;
   font-size: 0.78rem;
   display: flex;
@@ -208,14 +198,13 @@
   gap: 0.4rem;
   cursor: pointer;
   text-align: left;
-  color: #000000;   /* ✅ force black text */
+  color: #0d3040;
 }
 
 .miv-chat-window--high-contrast .miv-chip {
   background: #ffffff;
-  color: #111111; /* still dark for HC mode */
+  color: #111111;
 }
-
 
 .miv-chip-icon {
   flex-shrink: 0;
@@ -225,47 +214,29 @@
   line-height: 1.25;
 }
 
-/* Messages area – ChatGPT-style cards, no long pill bubbles */
+/* Messages area */
 .miv-messages {
   background: var(--miv-body-bg);
   padding: 0.8rem 1rem;
   flex: 1;
   overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-  gap: 0.9rem;
 }
 
-/* Base message block */
+/* ChatGPT-like blocks (no strong bubbles) */
 .miv-message {
   max-width: 100%;
-  border-radius: 16px;           /* normal rounded corners, not a pill */
-  padding: 0.75rem 1rem;
-  font-size: 0.85rem;
+  margin-bottom: 0.6rem;
+  font-size: 0.86rem;
   line-height: 1.5;
-  white-space: pre-wrap;         /* keep line breaks from Gemini */
 }
 
-/* Assistant (MIV Co-Pilot) message */
 .miv-message--assistant {
-  background: #0b3b4d;           /* deep teal, matches mockup footer */
-  color: #f9fafb;
-  align-self: stretch;           /* full width like ChatGPT */
+  color: var(--miv-assistant-text);
 }
 
-/* User message */
 .miv-message--user {
-  background: #ffffff;
-  color: #111827;
-  border: 1px solid var(--miv-border-subtle);
-  align-self: flex-end;          /* nudged to the right */
+  font-weight: 500;
 }
-
-/* Make paragraphs inside messages breathe a bit */
-.miv-message p + p {
-  margin-top: 0.4rem;
-}
-
 
 /* Typing indicator */
 .miv-message--typing {
@@ -355,7 +326,7 @@
   border: 0;
 }
 
-/* Small screens: let widget breathe a little more */
+/* Small screens */
 @media (max-width: 600px) {
   .miv-widget-root {
     inset: auto 0.75rem 0.75rem auto;
