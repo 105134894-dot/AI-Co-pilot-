@@ -29,19 +29,28 @@
   const form = document.getElementById("miv-form");
   const input = document.getElementById("miv-user-input");
 
-  // ✅ Quick Questions (rendered automatically as chips)
+  if (!launcherBtn || !chatWindow || !closeBtn || !messagesEl || !form || !input) {
+    console.warn("[MIV] Missing expected widget elements.");
+    return;
+  }
+
   const QUICK_QUESTIONS = [
     "How do I make sure my online forms are accessible?",
     "What tools can help someone with low vision use my digital content more easily?",
     "How do I make my event more accessible for people with different disabilities?",
-    "Can you help me find tools to support people with hearing impairments?",
+    "Can you help me find tools to support people with hearing impairments?"
   ];
 
+  // ----------------------------
+  // Helpers
+  // ----------------------------
   function applyFontScale() {
     chatWindow.style.setProperty("--miv-font-scale", fontScale.toString());
   }
 
   function applyContrast() {
+    if (!contrastToggle) return;
+
     if (highContrast) {
       chatWindow.classList.add("miv-chat-window--high-contrast");
       contrastToggle.textContent = "Disable high contrast";
@@ -58,7 +67,13 @@
     chatWindow.classList.add("miv-chat-window--open");
     chatWindow.setAttribute("aria-hidden", "false");
     launcherBtn.style.display = "none";
-    input.focus();
+
+    // close on click outside
+    document.addEventListener("mousedown", handleOutsideClick);
+    document.addEventListener("keydown", handleEscKey);
+
+    // focus input after paint
+    setTimeout(() => input.focus(), 0);
   }
 
   function closeChat() {
@@ -66,9 +81,30 @@
     chatWindow.classList.remove("miv-chat-window--open");
     chatWindow.setAttribute("aria-hidden", "true");
     launcherBtn.style.display = "";
+
+    document.removeEventListener("mousedown", handleOutsideClick);
+    document.removeEventListener("keydown", handleEscKey);
+
+    // also close a11y panel when closing chat (cleaner UX)
+    if (a11yPanel) a11yPanel.setAttribute("hidden", "true");
+  }
+
+  function handleOutsideClick(e) {
+    if (!isOpen) return;
+
+    // ignore clicks inside chat window OR on launcher button
+    if (chatWindow.contains(e.target) || launcherBtn.contains(e.target)) return;
+
+    closeChat();
+  }
+
+  function handleEscKey(e) {
+    if (!isOpen) return;
+    if (e.key === "Escape") closeChat();
   }
 
   function toggleA11yPanel() {
+    if (!a11yPanel) return;
     const isHidden = a11yPanel.hasAttribute("hidden");
     if (isHidden) a11yPanel.removeAttribute("hidden");
     else a11yPanel.setAttribute("hidden", "true");
@@ -78,7 +114,7 @@
     const wrapper = document.createElement("div");
     wrapper.className = "miv-message miv-message--" + role;
 
-    text
+    (text || "")
       .split(/\n{2,}/)
       .map((block) => block.trim())
       .filter((block) => block.length > 0)
@@ -123,13 +159,14 @@
       const res = await fetch(backendUrl + "/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ query: text, top_k: 3 }),
+        body: JSON.stringify({ query: text, top_k: 3 })
       });
 
       if (!res.ok) throw new Error("Server error: " + res.status);
 
       const data = await res.json();
       const replyText = data.response || "Sorry, I couldn’t generate a response.";
+
       removeTypingIndicator();
       addMessage("assistant", replyText);
     } catch (err) {
@@ -144,15 +181,16 @@
     }
   }
 
-  // ✅ Render quick question chips automatically (no PHP changes needed)
-  function renderQuickQuestions() {
-    // Remove existing if script re-runs (prevents duplicates)
-    const existing = document.getElementById("miv-quick-questions");
-    if (existing) existing.remove();
+  // ----------------------------
+  // Quick Questions UI (auto render)
+  // ----------------------------
+  function ensureQuickQuestionsUI() {
+    // Only add once
+    if (document.getElementById("miv-quick-questions")) return;
 
-    const container = document.createElement("section");
-    container.className = "miv-quick-questions";
-    container.id = "miv-quick-questions";
+    const qqWrap = document.createElement("section");
+    qqWrap.className = "miv-quick-questions";
+    qqWrap.id = "miv-quick-questions";
 
     QUICK_QUESTIONS.forEach((q) => {
       const btn = document.createElement("button");
@@ -160,57 +198,67 @@
       btn.className = "miv-chip";
       btn.setAttribute("data-question", q);
 
-      const text = document.createElement("span");
-      text.className = "miv-chip-text";
-      text.textContent = q;
+      // simple chip text (CSS handles it)
+      const span = document.createElement("span");
+      span.className = "miv-chip-text";
+      span.textContent = q;
 
-      btn.appendChild(text);
+      btn.appendChild(span);
 
-      btn.addEventListener("click", () => {
+      btn.addEventListener("click", function () {
         input.value = q;
         input.focus();
       });
 
-      container.appendChild(btn);
+      qqWrap.appendChild(btn);
     });
 
-    // Insert chips under the header, above messages
-    chatWindow.insertBefore(container, messagesEl);
+    // Insert quick questions just before messages section
+    messagesEl.parentNode.insertBefore(qqWrap, messagesEl);
   }
 
-  // Initial assistant welcome message
+  // ----------------------------
+  // Init
+  // ----------------------------
+  ensureQuickQuestionsUI();
+
   addMessage(
     "assistant",
     "Hi, I’m the MIV AI Co-Pilot. Ask me anything about accessibility, inclusive ventures, or how to support people with disabilities."
   );
 
-  // Render chips once on load
-  renderQuickQuestions();
-
-  // Event listeners
+  // Events
   launcherBtn.addEventListener("click", openChat);
   closeBtn.addEventListener("click", closeChat);
 
-  a11yToggle.addEventListener("click", toggleA11yPanel);
-  a11yClose.addEventListener("click", function () {
-    a11yPanel.setAttribute("hidden", "true");
-  });
+  if (a11yToggle) a11yToggle.addEventListener("click", toggleA11yPanel);
+  if (a11yClose) {
+    a11yClose.addEventListener("click", function () {
+      if (a11yPanel) a11yPanel.setAttribute("hidden", "true");
+    });
+  }
 
-  fontDec.addEventListener("click", function () {
-    fontScale = Math.max(0.9, fontScale - 0.1);
-    applyFontScale();
-  });
-  fontInc.addEventListener("click", function () {
-    fontScale = Math.min(1.2, fontScale + 0.1);
-    applyFontScale();
-  });
+  if (fontDec) {
+    fontDec.addEventListener("click", function () {
+      fontScale = Math.max(0.9, +(fontScale - 0.1).toFixed(2));
+      applyFontScale();
+    });
+  }
 
-  contrastToggle.addEventListener("click", function () {
-    highContrast = !highContrast;
-    applyContrast();
-  });
+  if (fontInc) {
+    fontInc.addEventListener("click", function () {
+      fontScale = Math.min(1.2, +(fontScale + 0.1).toFixed(2));
+      applyFontScale();
+    });
+  }
 
-  // Form submit
+  if (contrastToggle) {
+    contrastToggle.addEventListener("click", function () {
+      highContrast = !highContrast;
+      applyContrast();
+    });
+  }
+
   form.addEventListener("submit", function (e) {
     e.preventDefault();
     const text = input.value.trim();
@@ -219,7 +267,7 @@
     sendMessage(text);
   });
 
-  // Apply defaults
+  // Defaults
   applyFontScale();
   applyContrast();
 })();
