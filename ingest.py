@@ -15,8 +15,9 @@ load_dotenv()
 
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 PINECONE_API_KEY = os.getenv("PINECONE_API_KEY")
-PINECONE_ENVIRONMENT = os.getenv("PINECONE_ENVIRONMENT")
 PINECONE_INDEX_NAME = os.getenv("PINECONE_INDEX_NAME")
+PINECONE_ENVIRONMENT = os.getenv("PINECONE_ENVIRONMENT")
+
 
 PDF_DIRECTORY = "data"
 CHUNK_SIZE = 1000
@@ -25,7 +26,7 @@ EMBEDDING_MODEL = "text-embedding-004"
 EMBEDDING_DIMENSION = 768
 BATCH_SIZE = 100
 
-if not all([GEMINI_API_KEY, PINECONE_API_KEY, PINECONE_ENVIRONMENT, INDEX_NAME]):
+if not all([GEMINI_API_KEY, PINECONE_API_KEY, PINECONE_ENVIRONMENT, PINECONE_INDEX_NAME]):
     print("❌ Missing API keys in .env")
     exit()
 
@@ -73,19 +74,19 @@ genai.configure(api_key=GEMINI_API_KEY)
 pc = Pinecone(api_key=PINECONE_API_KEY, environment=PINECONE_ENVIRONMENT)
 
 # Auto-create index if missing
-if INDEX_NAME not in pc.list_indexes().names():
-    print(f"Creating index '{INDEX_NAME}'...")
+if PINECONE_INDEX_NAME not in pc.list_indexes().names():
+    print(f"Creating index '{PINECONE_INDEX_NAME}'...")
     pc.create_index(
-        name=INDEX_NAME,
+        name=PINECONE_INDEX_NAME,
         dimension=EMBEDDING_DIMENSION,
         metric="cosine",
         spec=ServerlessSpec(cloud="aws", region=PINECONE_ENVIRONMENT)
     )
-    while not pc.describe_index(INDEX_NAME).status['ready']:
+    while not pc.describe_index(PINECONE_INDEX_NAME).status['ready']:
         time.sleep(1)
     print("Index ready.")
 
-index = pc.Index(INDEX_NAME)
+index = pc.Index(PINECONE_INDEX_NAME)
 
 
 # 4. Process new files
