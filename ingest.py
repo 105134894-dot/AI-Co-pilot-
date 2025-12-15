@@ -8,9 +8,9 @@ import google.generativeai as genai
 from pypdf import PdfReader
 from docx import Document
 
-# -----------------------------
+
 # 0. Configuration
-# -----------------------------
+
 load_dotenv()
 
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
@@ -29,9 +29,9 @@ if not all([GEMINI_API_KEY, PINECONE_API_KEY, PINECONE_ENVIRONMENT, INDEX_NAME])
     print("❌ Missing API keys in .env")
     exit()
 
-# -----------------------------
-# 1. Helper functions
-# -----------------------------
+
+# 1. Help functions
+
 def extract_text_from_pdf(file_path: str) -> str:
     try:
         reader = PdfReader(file_path)
@@ -57,9 +57,9 @@ def split_text(text: str) -> list[str]:
         i += CHUNK_SIZE - CHUNK_OVERLAP
     return chunks
 
-# -----------------------------
+
 # 2. Load ingested files log
-# -----------------------------
+
 log_file = "ingested_files.json"
 if os.path.exists(log_file):
     with open(log_file, "r") as f:
@@ -67,9 +67,8 @@ if os.path.exists(log_file):
 else:
     ingested_files = []
 
-# -----------------------------
 # 3. Initialize Pinecone & Gemini
-# -----------------------------
+
 genai.configure(api_key=GEMINI_API_KEY)
 pc = Pinecone(api_key=PINECONE_API_KEY, environment=PINECONE_ENVIRONMENT)
 
@@ -88,9 +87,9 @@ if INDEX_NAME not in pc.list_indexes().names():
 
 index = pc.Index(INDEX_NAME)
 
-# -----------------------------
+
 # 4. Process new files
-# -----------------------------
+
 files = glob.glob(os.path.join(PDF_DIRECTORY, "*.pdf")) + \
         glob.glob(os.path.join(PDF_DIRECTORY, "*.docx"))
 
@@ -121,9 +120,9 @@ for file_path in files_to_process:
 
 print(f"Total chunks to upload: {len(all_chunks)}")
 
-# -----------------------------
+
 # 5. Generate embeddings and upsert
-# -----------------------------
+
 vectors_to_upsert = []
 
 for i, chunk in enumerate(all_chunks, 1):
@@ -150,9 +149,9 @@ for i, chunk in enumerate(all_chunks, 1):
 if vectors_to_upsert:
     index.upsert(vectors=vectors_to_upsert)
 
-# -----------------------------
+
 # 6. Update ingested log
-# -----------------------------
+
 for f in files_to_process:
     ingested_files.append(os.path.basename(f))
 
