@@ -344,3 +344,32 @@
 .miv-widget-root {
     font-family: sans-serif;
 }
+
+/* ChatGPT-style formatting */
+.miv-message h4 {
+  font-size: 0.95rem;
+  font-weight: 600;
+  margin: 0.3rem 0 0.4rem;
+}
+
+.miv-message h5 {
+  font-size: 0.85rem;
+  font-weight: 600;
+  margin: 0.4rem 0 0.3rem;
+  opacity: 0.85;
+}
+
+.miv-message ul,
+.miv-message ol {
+  margin: 0.2rem 0 0.2rem 1.2rem;
+  padding: 0;
+}
+
+.miv-message li {
+  margin-bottom: 0.25rem;
+}
+
+.miv-message p {
+  margin: 0.2rem 0;
+}
+
