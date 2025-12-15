@@ -9,6 +9,7 @@
 if (!defined('ABSPATH')) {
     exit;
 }
+require_once plugin_dir_path(__FILE__) . 'includes/admin-pages.php';
 
 /**
  * Enqueue CSS and JS for the widget
