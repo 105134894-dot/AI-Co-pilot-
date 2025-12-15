@@ -9,16 +9,18 @@
 
 /* Launcher pill */
 .miv-launcher-btn {
-    border: none;
-    padding: 0;
-    background: transparent;
-    cursor: pointer;
+  border: none;
+  padding: 0;
+  background: transparent;
+  cursor: pointer;
+  display: inline-block;
 }
 
 .miv-launcher-img {
-    display: block;
-    max-width: 220px;
-    height: auto;
+  display: block;
+  width: 320px;      /* ✅ make bigger */
+  max-width: 70vw;   /* ✅ responsive on small screens */
+  height: auto;
 }
 
 /* Chat window */
