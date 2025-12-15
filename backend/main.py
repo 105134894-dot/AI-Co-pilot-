@@ -99,12 +99,26 @@ def home():
 async def chat_endpoint(req: ChatRequest):
     start_time = time.time()
     
-    # We use req.query because that's what we defined in the ChatRequest model
+    # 1️⃣ Get user question
     question = req.query.strip()
-    
     print(f"\n📥 Received Question: {question}")
 
-    # --- A. HANDLE GREETINGS (Saves Money/Time) ---
+    # 2️⃣ Detect formatting instructions
+    formatted_question = question  # default
+    q_lower = question.lower()
+
+    if "in three words" in q_lower:
+        formatted_question += " (Answer in exactly three words, separated by commas, no extra commentary)"
+    elif "bullet points" in q_lower:
+        formatted_question += (
+            " (Answer as bullet points: each tip on a separate line starting with '-', do not combine multiple tips in one paragraph, no inline asterisks)"
+        )
+    elif "numbered steps" in q_lower:
+        formatted_question += (
+            " (Answer as numbered steps: each step on a separate line starting with its number, no extra commentary)"
+        )
+
+    # 3️⃣ Handle greetings
     greetings = ['hi', 'hello', 'hey', 'good morning', 'good afternoon']
     if question.lower() in greetings:
         return {
@@ -113,61 +127,61 @@ async def chat_endpoint(req: ChatRequest):
         }
 
     try:
-        # --- B. EMBEDDING ---
+        # --- EMBEDDING ---
         embedding_resp = genai.embed_content(
             model=EMBED_MODEL_NAME,
-            content=question,
+            content=question,  # Keep embedding based on original question
             task_type="retrieval_query"
         )
         query_embedding = embedding_resp['embedding']
 
-        # --- C. SEARCH PINECONE ---
+        # --- SEARCH PINECONE ---
         search_results = index.query(
             vector=query_embedding,
             top_k=req.top_k,
             include_metadata=True
         )
 
-        # Process results into a clean list
+        # Debug: show retrieved chunks
+        print("Retrieved chunks:")
+        for match in search_results['matches']:
+            metadata = match.get('metadata', {})
+            snippet = metadata.get('text', '')[:100]
+            source_name = metadata.get('source', 'MIV Database')
+            print("-", source_name, "|", snippet)
+
+        # --- Build context ---
         retrieved_chunks = []
         context_text_list = []
-        
         for match in search_results['matches']:
-            # Safety check for empty metadata
             metadata = match.get('metadata', {})
             text_content = metadata.get('text', '')
             source_name = metadata.get('source', 'MIV Database')
-            
-            # Add to sources list for frontend display
+
             retrieved_chunks.append({
-                "text": text_content[:200] + "...", # Snippet
+                "text": text_content[:200] + "...",
                 "source": source_name,
                 "score": match['score']
             })
-            
-            # Add to context for AI reasoning
             context_text_list.append(f"[Source: {source_name}]\n{text_content}")
 
         full_context = "\n\n---\n\n".join(context_text_list)
 
-        # --- D. GENERATE ANSWER ---
+        # --- GENERATE AI RESPONSE ---
         prompt = f"""{SYSTEM_PROMPT}
 
 CONTEXT FROM KNOWLEDGE BASE:
 {full_context}
 
 USER QUESTION:
-{question}
-
-Please provide a helpful, practical answer based on the context above."""
-
+{formatted_question}
+"""
         model = genai.GenerativeModel(CHAT_MODEL_NAME)
         ai_response = model.generate_content(prompt)
-        
+
         elapsed = time.time() - start_time
         print(f"✅ Reply generated in {elapsed:.2f}s")
 
-        # Returns 'response' which matches the miv-widget.js requirement
         return {
             "response": ai_response.text,
             "sources": retrieved_chunks
@@ -175,5 +189,4 @@ Please provide a helpful, practical answer based on the context above."""
 
     except Exception as e:
         print(f"❌ Error: {str(e)}")
-        # This will send a 500 error to the frontend, triggering the "technical issue" message
         raise HTTPException(status_code=500, detail=str(e))
