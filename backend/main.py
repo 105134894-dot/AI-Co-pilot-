@@ -1,12 +1,15 @@
 import os
 import time
+import io
 from typing import List, Optional
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, UploadFile, File
 from pydantic import BaseModel
 from dotenv import load_dotenv
 from pinecone import Pinecone, ServerlessSpec
 import google.generativeai as genai
 from fastapi.middleware.cors import CORSMiddleware
+from pypdf import PdfReader
+from docx import Document
 
 # ==========================================
 # 1. SETUP & CONFIGURATION
@@ -39,8 +42,16 @@ if PINECONE_INDEX_NAME not in pc.list_indexes().names():
         metric="cosine",
         spec=ServerlessSpec(cloud="aws", region="us-east-1")
     )
+    # Wait for index to be ready
+    while not pc.describe_index(PINECONE_INDEX_NAME).status['ready']:
+        time.sleep(1)
 
 index = pc.Index(PINECONE_INDEX_NAME)
+
+# Ingestion constants
+CHUNK_SIZE = 1000
+CHUNK_OVERLAP = 200
+BATCH_SIZE = 100
 
 # ==========================================
 # 2. DATA MODELS (Pydantic)
@@ -58,8 +69,47 @@ class ChatResponse(BaseModel):
     response: str          
     sources: List[Source]
 
+class IngestResponse(BaseModel):
+    success: bool
+    message: str
+    chunks_added: int
+    filename: str
+
 # ==========================================
-# 3. SYSTEM PROMPT
+# 3. HELPER FUNCTIONS FOR INGESTION
+# ==========================================
+def extract_text_from_pdf(file_bytes: bytes) -> str:
+    """Extract text from PDF file bytes"""
+    try:
+        pdf_file = io.BytesIO(file_bytes)
+        reader = PdfReader(pdf_file)
+        return "".join([page.extract_text() or "" for page in reader.pages])
+    except Exception as e:
+        print(f"Error reading PDF: {e}")
+        return ""
+
+def extract_text_from_docx(file_bytes: bytes) -> str:
+    """Extract text from DOCX file bytes"""
+    try:
+        docx_file = io.BytesIO(file_bytes)
+        doc = Document(docx_file)
+        return "\n".join([p.text for p in doc.paragraphs])
+    except Exception as e:
+        print(f"Error reading DOCX: {e}")
+        return ""
+
+def split_text(text: str) -> List[str]:
+    """Split text into overlapping chunks"""
+    chunks = []
+    i = 0
+    while i < len(text):
+        end = min(len(text), i + CHUNK_SIZE)
+        chunks.append(text[i:end])
+        i += CHUNK_SIZE - CHUNK_OVERLAP
+    return chunks
+
+# ==========================================
+# 4. SYSTEM PROMPT
 # ==========================================
 SYSTEM_PROMPT = """You are an AI Co-Pilot for accessibility and inclusive design, 
 specifically supporting Mekong Inclusive Ventures (MIV) practitioners, educators, and 
@@ -78,7 +128,7 @@ If the context doesn't contain the answer, say you don't know based on the MIV k
 but provide general best practices if applicable."""
 
 # ==========================================
-# 4. FASTAPI APP & ROUTES
+# 5. FASTAPI APP & ROUTES
 # ==========================================
 app = FastAPI(title="MIV AI Co-Pilot API")
 
@@ -101,7 +151,7 @@ async def chat_endpoint(req: ChatRequest):
     
     # 1️⃣ Get user question
     question = req.query.strip()
-    print(f"\n📥 Received Question: {question}")
+    print(f"\n🔥 Received Question: {question}")
 
     # 2️⃣ Detect formatting instructions
     formatted_question = question  # default
@@ -190,3 +240,100 @@ USER QUESTION:
     except Exception as e:
         print(f"❌ Error: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/ingest", response_model=IngestResponse)
+async def ingest_endpoint(file: UploadFile = File(...)):
+    """
+    Upload and ingest a PDF or DOCX file into the vector database.
+    Chunks the document, generates embeddings, and stores in Pinecone.
+    """
+    start_time = time.time()
+    filename = file.filename
+    
+    print(f"\n📄 Ingesting file: {filename}")
+    
+    # Validate file type
+    if not filename.lower().endswith(('.pdf', '.docx')):
+        raise HTTPException(
+            status_code=400, 
+            detail="Invalid file type. Only PDF and DOCX files are supported."
+        )
+    
+    try:
+        # Read file content into memory
+        file_bytes = await file.read()
+        
+        # Extract text based on file type
+        if filename.lower().endswith('.pdf'):
+            raw_text = extract_text_from_pdf(file_bytes)
+        else:  # .docx
+            raw_text = extract_text_from_docx(file_bytes)
+        
+        # Validate extracted text
+        if not raw_text.strip():
+            raise HTTPException(
+                status_code=400,
+                detail=f"No text could be extracted from {filename}"
+            )
+        
+        print(f"📝 Extracted {len(raw_text)} characters from {filename}")
+        
+        # Split into chunks
+        chunks = split_text(raw_text)
+        print(f"🔪 Split into {len(chunks)} chunks")
+        
+        # Generate embeddings and prepare vectors
+        vectors_to_upsert = []
+        
+        for i, chunk in enumerate(chunks):
+            # Generate embedding for this chunk
+            embedding_resp = genai.embed_content(
+                model=EMBED_MODEL_NAME,
+                content=chunk,
+                task_type="RETRIEVAL_DOCUMENT"
+            )
+            vector = embedding_resp['embedding']
+            
+            # Create unique ID for this chunk
+            chunk_id = f"{filename}-chunk-{i}-{int(time.time())}"
+            
+            # Prepare vector with metadata
+            vectors_to_upsert.append((
+                chunk_id,
+                vector,
+                {
+                    "text": chunk,
+                    "source": filename
+                }
+            ))
+            
+            # Upsert in batches to avoid overwhelming Pinecone
+            if len(vectors_to_upsert) >= BATCH_SIZE:
+                index.upsert(vectors=vectors_to_upsert)
+                print(f"✅ Uploaded batch of {len(vectors_to_upsert)} vectors")
+                vectors_to_upsert = []
+                time.sleep(0.5)  # Rate limiting
+        
+        # Upsert remaining vectors
+        if vectors_to_upsert:
+            index.upsert(vectors=vectors_to_upsert)
+            print(f"✅ Uploaded final batch of {len(vectors_to_upsert)} vectors")
+        
+        elapsed = time.time() - start_time
+        print(f"🎉 Ingestion complete in {elapsed:.2f}s - {len(chunks)} chunks added")
+        
+        return IngestResponse(
+            success=True,
+            message=f"Successfully ingested {filename}",
+            chunks_added=len(chunks),
+            filename=filename
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"❌ Ingestion error: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to ingest file: {str(e)}"
+        )
