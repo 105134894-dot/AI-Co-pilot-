@@ -16,7 +16,7 @@ load_dotenv()
 # Load API Keys with safety checks
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 PINECONE_API_KEY = os.getenv("PINECONE_API_KEY")
-# PINECONE_INDEX_NAME = os.getenv("PINECONE_INDEX_NAME") #commenting out for now, wil ADD BACK IN LATER
+PINECONE_INDEX_NAME = os.getenv("PINECONE_INDEX_NAME")
 
 if not all([GEMINI_API_KEY, PINECONE_API_KEY, PINECONE_INDEX_NAME]):
     raise ValueError("❌ Missing API keys in .env file. Please check GEMINI_API_KEY, PINECONE_API_KEY, and PINECONE_INDEX_NAME.")
