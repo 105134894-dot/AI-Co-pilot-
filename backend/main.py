@@ -25,11 +25,12 @@ PINECONE_INDEX_NAME = os.getenv("PINECONE_INDEX_NAME")
 if not all([GEMINI_API_KEY, PINECONE_API_KEY, PINECONE_INDEX_NAME]):
     raise ValueError("❌ Missing API keys in .env file. Please check GEMINI_API_KEY, PINECONE_API_KEY, and PINECONE_INDEX_NAME.")
 
-# Configure Gemini
-genai.configure(api_key=GEMINI_API_KEY)
-# Using specific model with limitations, no cost.
-CHAT_MODEL_NAME = 'gemini-2.5-flash' 
-EMBED_MODEL_NAME = 'models/text-embedding-004'
+# Configure Gemini with new API
+client = genai.Client(api_key=GEMINI_API_KEY)
+
+# Using specific model
+CHAT_MODEL_NAME = 'gemini-2.5-flash'
+EMBED_MODEL_NAME = 'text-embedding-004'
 
 # Configure Pinecone
 pc = Pinecone(api_key=PINECONE_API_KEY)
@@ -247,13 +248,13 @@ async def chat_endpoint(req: ChatRequest):
         }
 
     try:
-        # --- EMBEDDING ---
-        embedding_resp = genai.embed_content(
+        # --- EMBEDDING with new API ---
+        embedding_response = client.models.embed_content(
             model=EMBED_MODEL_NAME,
-            content=question,  # Keep embedding based on original question
-            task_type="retrieval_query"
+            contents=question
         )
-        query_embedding = embedding_resp['embedding']
+        # Access the embedding from the response
+        query_embedding = embedding_response.embeddings[0].values
 
         # --- SEARCH PINECONE ---
         search_results = index.query(
@@ -287,7 +288,7 @@ async def chat_endpoint(req: ChatRequest):
 
         full_context = "\n\n---\n\n".join(context_text_list)
 
-        # --- GENERATE AI RESPONSE ---
+        # --- GENERATE AI RESPONSE with new API ---
         prompt = f"""{SYSTEM_PROMPT}
 
 CONTEXT FROM KNOWLEDGE BASE:
@@ -296,14 +297,16 @@ CONTEXT FROM KNOWLEDGE BASE:
 USER QUESTION:
 {formatted_question}
 """
-        model = genai.GenerativeModel(CHAT_MODEL_NAME)
-        ai_response = model.generate_content(prompt)
+        response = client.models.generate_content(
+            model=CHAT_MODEL_NAME,
+            contents=prompt
+        )
 
         elapsed = time.time() - start_time
         print(f"✅ Reply generated in {elapsed:.2f}s")
 
         return {
-            "response": ai_response.text,
+            "response": response.text,
             "sources": retrieved_chunks
         }
 
@@ -363,13 +366,13 @@ async def ingest_endpoint(file: UploadFile = File(...)):
             heading = chunk_info['heading']
             para_idx = chunk_info['paragraph_index']
 
-            # Generate embedding
-            embedding_resp = genai.embed_content(
+            # Generate embedding with new API
+            embedding_response = client.models.embed_content(
                 model=EMBED_MODEL_NAME,
-                content=chunk_text,
-                task_type="RETRIEVAL_DOCUMENT"
+                contents=chunk_text
             )
-            vector = embedding_resp['embedding']
+            # Access the embedding from the response
+            vector = embedding_response.embeddings[0].values
 
             # Unique ID
             chunk_id = f"{filename}-para-{para_idx}"
