@@ -1,3 +1,4 @@
+from fileinput import filename
 import os
 import time
 import io
@@ -98,14 +99,83 @@ def extract_text_from_docx(file_bytes: bytes) -> str:
         print(f"Error reading DOCX: {e}")
         return ""
 
-def split_text(text: str) -> List[str]:
-    """Split text into overlapping chunks"""
+def extract_docx_paragraphs_with_headings(file_bytes: bytes):
+    """
+    Returns a list of tuples: (paragraph_text, heading)
+    """
+    doc = Document(io.BytesIO(file_bytes))
+    paragraphs = []
+    current_heading = "No Heading"
+
+    for p in doc.paragraphs:
+        style = p.style.name
+        if style.startswith("Heading"):
+            current_heading = p.text.strip() or current_heading
+        elif p.text.strip():
+            paragraphs.append((p.text.strip(), current_heading))
+
+    return paragraphs
+
+
+def extract_pdf_paragraphs_with_headings(file_bytes: bytes):
+    """
+    Returns a list of tuples: (paragraph_text, heading)
+    Heuristic: lines in ALL CAPS and short are headings
+    """
+    pdf_file = io.BytesIO(file_bytes)
+    reader = PdfReader(pdf_file)
+    paragraphs = []
+    current_heading = "No Heading"
+
+    for page in reader.pages:
+        text = page.extract_text() or ""
+        for para in text.split("\n\n"):
+            para = para.strip()
+            if not para:
+                continue
+            if para.isupper() and len(para.split()) < 10:
+                current_heading = para
+            else:
+                paragraphs.append((para, current_heading))
+
+    return paragraphs
+
+
+# ----- Paragraph-level Chunking -----
+def merge_paragraphs_into_chunks(paragraphs, max_chunk_size=1000):
+    """
+    Merge paragraph tuples into chunks.
+    Returns list of dicts: {'text', 'heading', 'paragraph_index'}
+    """
     chunks = []
-    i = 0
-    while i < len(text):
-        end = min(len(text), i + CHUNK_SIZE)
-        chunks.append(text[i:end])
-        i += CHUNK_SIZE - CHUNK_OVERLAP
+    current_chunk = ""
+    current_heading = ""
+    start_index = 0
+
+    for i, (para_text, para_heading) in enumerate(paragraphs):
+        if not current_chunk:
+            current_chunk = para_text
+            current_heading = para_heading
+            start_index = i
+        elif len(current_chunk) + len(para_text) + 1 <= max_chunk_size:
+            current_chunk += "\n" + para_text
+        else:
+            chunks.append({
+                "text": current_chunk.strip(),
+                "heading": current_heading,
+                "paragraph_index": start_index
+            })
+            current_chunk = para_text
+            current_heading = para_heading
+            start_index = i
+
+    if current_chunk:
+        chunks.append({
+            "text": current_chunk.strip(),
+            "heading": current_heading,
+            "paragraph_index": start_index
+        })
+
     return chunks
 
 # ==========================================
@@ -259,81 +329,90 @@ async def ingest_endpoint(file: UploadFile = File(...)):
             detail="Invalid file type. Only PDF and DOCX files are supported."
         )
     
+    # Remove existing vectors for this file (prevents zombie data)
+    print(f"♻️ Removing existing vectors for {filename}")
+    index.delete(filter={"source": filename})
+
     try:
         # Read file content into memory
         file_bytes = await file.read()
-        
-        # Extract text based on file type
+
+        # Extract paragraphs with headings
         if filename.lower().endswith('.pdf'):
-            raw_text = extract_text_from_pdf(file_bytes)
-        else:  # .docx
-            raw_text = extract_text_from_docx(file_bytes)
-        
-        # Validate extracted text
-        if not raw_text.strip():
+            paragraphs = extract_pdf_paragraphs_with_headings(file_bytes)
+        else:
+            paragraphs = extract_docx_paragraphs_with_headings(file_bytes)
+
+        # Merge paragraphs into chunks
+        paragraph_chunks = merge_paragraphs_into_chunks(paragraphs)
+
+        # Validate extraction
+        if not paragraph_chunks:
             raise HTTPException(
                 status_code=400,
-                detail=f"No text could be extracted from {filename}"
+                detail="No paragraph extracted from the document."
             )
-        
-        print(f"📝 Extracted {len(raw_text)} characters from {filename}")
-        
-        # Split into chunks
-        chunks = split_text(raw_text)
-        print(f"🔪 Split into {len(chunks)} chunks")
-        
-        # Generate embeddings and prepare vectors
+
+        print(f"📝 Extracted {len(paragraph_chunks)} paragraph chunks from {filename}")
+
         vectors_to_upsert = []
-        
-        for i, chunk in enumerate(chunks):
-            # Generate embedding for this chunk
+        start_time = time.time()
+
+        for i, chunk_info in enumerate(paragraph_chunks):
+            chunk_text = chunk_info['text']
+            heading = chunk_info['heading']
+            para_idx = chunk_info['paragraph_index']
+
+            # Generate embedding
             embedding_resp = genai.embed_content(
                 model=EMBED_MODEL_NAME,
-                content=chunk,
+                content=chunk_text,
                 task_type="RETRIEVAL_DOCUMENT"
             )
             vector = embedding_resp['embedding']
-            
-            # Create unique ID for this chunk
-            chunk_id = f"{filename}-chunk-{i}-{int(time.time())}"
-            
-            # Prepare vector with metadata
+
+            # Unique ID
+            chunk_id = f"{filename}-para-{para_idx}"
+
+            # Upsert with heading metadata
             vectors_to_upsert.append((
                 chunk_id,
                 vector,
                 {
-                    "text": chunk,
-                    "source": filename
+                    "text": chunk_text,
+                    "source": filename,
+                    "paragraph_index": para_idx,
+                    "heading": heading
                 }
             ))
-            
-            # Upsert in batches to avoid overwhelming Pinecone
+
+            # Upsert in batches
             if len(vectors_to_upsert) >= BATCH_SIZE:
                 index.upsert(vectors=vectors_to_upsert)
                 print(f"✅ Uploaded batch of {len(vectors_to_upsert)} vectors")
                 vectors_to_upsert = []
-                time.sleep(0.5)  # Rate limiting
-        
+                time.sleep(0.5)
+
         # Upsert remaining vectors
         if vectors_to_upsert:
             index.upsert(vectors=vectors_to_upsert)
             print(f"✅ Uploaded final batch of {len(vectors_to_upsert)} vectors")
-        
+
         elapsed = time.time() - start_time
-        print(f"🎉 Ingestion complete in {elapsed:.2f}s - {len(chunks)} chunks added")
-        
+        print(f"🎉 Ingestion complete in {elapsed:.2f}s - {len(paragraph_chunks)} chunks added")
+
         return IngestResponse(
             success=True,
             message=f"Successfully ingested {filename}",
-            chunks_added=len(chunks),
+            chunks_added=len(paragraph_chunks),
             filename=filename
         )
-        
+
     except HTTPException:
         raise
     except Exception as e:
         print(f"❌ Ingestion error: {str(e)}")
         raise HTTPException(
             status_code=500,
-            detail=f"Failed to ingest file: {str(e)}"
+            detail=f"An error occurred during ingestion: {str(e)}"
         )
