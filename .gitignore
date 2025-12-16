@@ -13,3 +13,6 @@ backend/.env
 
 # macOS junk
 .DS_Store
+
+# Build artifacts
+miv-ai-co-pilot.zip
