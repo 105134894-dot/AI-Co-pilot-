@@ -40,7 +40,7 @@ function miv_enqueue_copilot_assets() {
         'miv-copilot-script',
         'MIV_WIDGET_CONFIG',
         array(
-            'backendUrl' => 'http://localhost:8000
+            'backendUrl' => 'https://ict30018-project-b-ai-co-pilot.onrender.com
             ', // If you want to go back to the test environment change to 'http://localhost:8000' 
 
 
