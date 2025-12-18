@@ -332,9 +332,15 @@ async def ingest_endpoint(file: UploadFile = File(...)):
             detail="Invalid file type. Only PDF and DOCX files are supported."
         )
     
-    # Remove existing vectors for this file (prevents zombie data)
+    # -----------------------------------------------------------
+    # FIX: Wrap delete in try/except to handle "Namespace not found"
+    # -----------------------------------------------------------
     print(f"♻️ Removing existing vectors for {filename}")
-    index.delete(filter={"source": filename})
+    try:
+        index.delete(filter={"source": filename})
+    except Exception as e:
+        # If it fails (e.g. namespace not found on first run), just log and continue
+        print(f"⚠️ Note: Could not delete existing vectors (likely first run or empty index). Details: {e}")
 
     try:
         # Read file content into memory
