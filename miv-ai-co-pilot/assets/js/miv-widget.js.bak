@@ -1,9 +1,6 @@
 (function () {
-  const cfg = window.MIV_WIDGET_CONFIG || {};
-  const backendUrl = cfg.backendUrl;
-
-  // ✅ changes every plugin upload (we’ll set it in PHP)
-  const storageVersion = String(cfg.storageVersion || "v1");
+  const backendUrl =
+    window.MIV_WIDGET_CONFIG && window.MIV_WIDGET_CONFIG.backendUrl;
 
   if (!backendUrl) {
     console.error("MIV backendUrl not provided");
@@ -17,10 +14,7 @@
   // Intent state
   let intent = null;
 
-  const WELCOME_MESSAGE =
-    "Ask me anything about accessibility, inclusive ventures, or supporting people with disabilities.";
-
-  // Keep your original 4 quick questions
+  // Keep your original 4 quick questions (they’ll be used under the right intent)
   const QUICK_QUESTIONS = [
     "How do I make sure my online forms are accessible?",
     "What tools can help someone with low vision use my digital content more easily?",
@@ -36,6 +30,7 @@
     { key: "other", label: "Something else" }
   ];
 
+  // Prompt sets (includes your 4 original questions, now targeted)
   const PROMPTS_BY_INTENT = {
     digital: [
       QUICK_QUESTIONS[0],
@@ -89,74 +84,6 @@
   const input = document.getElementById("miv-user-input");
 
   /* -----------------------------
-     Chat history (localStorage)
-  ----------------------------- */
-  const MAX_MESSAGES = 60;
-  const STORAGE_KEY = `miv_copilot_chat_history_${storageVersion}`;
-  const LEGACY_KEY = "miv_copilot_chat_history_v1"; // old key you used earlier
-
-  function loadHistory() {
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      const parsed = raw ? JSON.parse(raw) : [];
-      return Array.isArray(parsed) ? parsed : [];
-    } catch {
-      return [];
-    }
-  }
-
-  function saveHistory(history) {
-    try {
-      localStorage.setItem(
-        STORAGE_KEY,
-        JSON.stringify(history.slice(-MAX_MESSAGES))
-      );
-    } catch (e) {
-      console.warn("MIV history save failed", e);
-    }
-  }
-
-  function clearHistory() {
-    try {
-      localStorage.removeItem(STORAGE_KEY);
-    } catch {}
-  }
-
-  function pushToHistory(role, text) {
-    const history = loadHistory();
-    history.push({
-      role,
-      text: String(text || ""),
-      ts: Date.now()
-    });
-    saveHistory(history);
-  }
-
-  // Prevent old “Chat cleared…” leftovers from older builds
-  function cleanupLegacyOrBadHistory() {
-    try {
-      const legacy = localStorage.getItem(LEGACY_KEY);
-      if (legacy && !localStorage.getItem(STORAGE_KEY)) {
-        // We do NOT migrate legacy; treat new build as new client
-        localStorage.removeItem(LEGACY_KEY);
-      }
-    } catch {}
-
-    const h = loadHistory();
-    if (h.length === 1 && /chat cleared/i.test(h[0].text || "")) {
-      clearHistory();
-    }
-  }
-
-  function renderHistory() {
-    const history = loadHistory();
-    if (!history.length) return;
-
-    messagesEl.innerHTML = "";
-    history.forEach(m => addMessage(m.role, m.text, { skipSave: true }));
-  }
-
-  /* -----------------------------
      Quick Questions UI (dynamic)
   ----------------------------- */
   const quickWrap = document.createElement("div");
@@ -170,15 +97,9 @@
 
   function renderTitle(text) {
     const title = document.createElement("div");
-    title.className = "miv-quick-title";
+    title.className = "miv-quick-title"; // optional CSS class
     title.textContent = text;
     quickWrap.appendChild(title);
-  }
-
-  // ✅ remove temp “system” messages from UI
-  function removeTempMessages() {
-    const temps = messagesEl.querySelectorAll('[data-temp="1"]');
-    temps.forEach(el => el.remove());
   }
 
   function renderIntentButtons() {
@@ -192,18 +113,11 @@
       btn.innerHTML = `<span class="miv-chip-text">${cat.label}</span>`;
 
       btn.addEventListener("click", () => {
-        // ✅ when selecting an option, remove prior temp prompts
-        removeTempMessages();
-
         intent = cat.key;
-
-        // ✅ temp message: shows guidance, then disappears when next selection happens
         addMessage(
           "assistant",
-          `Got it — ${cat.label}. Pick a quick question below, or type your own.`,
-          { skipSave: true, isTemp: true }
+          `Got it — ${cat.label}. Pick a quick question above, or type your own.`
         );
-
         renderQuickQuestions(PROMPTS_BY_INTENT[intent] || QUICK_QUESTIONS);
       });
 
@@ -222,8 +136,6 @@
       btn.innerHTML = `<span class="miv-chip-text">${q}</span>`;
 
       btn.addEventListener("click", () => {
-        // ✅ remove temp prompts when user chooses a question
-        removeTempMessages();
         input.value = "";
         sendMessage(q);
       });
@@ -231,40 +143,24 @@
       quickWrap.appendChild(btn);
     });
 
+    // Change topic button
     const reset = document.createElement("button");
     reset.type = "button";
     reset.className = "miv-chip miv-chip--secondary";
     reset.innerHTML = `<span class="miv-chip-text">Change topic</span>`;
     reset.addEventListener("click", () => {
       intent = null;
-      removeTempMessages();
       renderIntentButtons();
-      // show welcome again as temp
-      addMessage("assistant", WELCOME_MESSAGE, { skipSave: true, isTemp: true });
     });
     quickWrap.appendChild(reset);
   }
 
-  function ensureFreshStartUI() {
-    quickWrap.style.display = "flex";
-    renderIntentButtons();
-
-    // ✅ welcome is TEMP + NOT saved to history
-    addMessage("assistant", WELCOME_MESSAGE, { skipSave: true, isTemp: true });
-  }
-
   /* -----------------------------
-     Rendering helpers
+     Rendering helpers (ChatGPT-style)
   ----------------------------- */
-  function addMessage(role, text, opts) {
-    const options = opts || {};
-    if (!options.skipSave) pushToHistory(role, text);
-
+  function addMessage(role, text) {
     const wrapper = document.createElement("div");
     wrapper.className = "miv-message miv-message--" + role;
-
-    // ✅ mark temporary messages so we can remove them later
-    if (options.isTemp) wrapper.setAttribute("data-temp", "1");
 
     const lines = (text || "")
       .split("\n")
@@ -355,47 +251,19 @@
     contrastToggle.setAttribute("aria-pressed", highContrast);
   }
 
-  // ✅ Clear chat: resets to fresh start WITHOUT saving any “cleared” message
-  const clearBtn = document.createElement("button");
-  clearBtn.type = "button";
-  clearBtn.className = "miv-a11y-btn miv-a11y-btn--full";
-  clearBtn.textContent = "Clear chat history";
-  clearBtn.addEventListener("click", () => {
-    clearHistory();
-    messagesEl.innerHTML = "";
-    intent = null;
-    isLoading = false;
-    removeTypingIndicator();
-
-    ensureFreshStartUI();
-  });
-  a11yPanel.appendChild(clearBtn);
-
   /* -----------------------------
      Chat controls
   ----------------------------- */
-  function isChatOpen() {
-    return chatWindow.classList.contains("miv-chat-window--open");
-  }
-
   function openChat() {
     chatWindow.classList.add("miv-chat-window--open");
     chatWindow.setAttribute("aria-hidden", "false");
     launcherBtn.style.display = "none";
-    a11yPanel.setAttribute("hidden", "true");
-
-    // If this build has no history + UI is empty, start fresh immediately
-    if (loadHistory().length === 0 && messagesEl.children.length === 0) {
-      ensureFreshStartUI();
-    }
-
     input.focus();
   }
 
   function closeChat() {
     chatWindow.classList.remove("miv-chat-window--open");
     chatWindow.setAttribute("aria-hidden", "true");
-    a11yPanel.setAttribute("hidden", "true");
     launcherBtn.style.display = "";
   }
 
@@ -403,7 +271,7 @@
     if (!text || isLoading) return;
     isLoading = true;
 
-    // Hide chips once user starts interacting
+    // Hide chips once the user starts interacting
     quickWrap.style.display = "none";
 
     addMessage("user", text);
@@ -434,39 +302,14 @@
   /* -----------------------------
      Event listeners
   ----------------------------- */
-  launcherBtn.addEventListener("click", (e) => {
-    e.preventDefault();
-    openChat();
-  });
+  launcherBtn.addEventListener("click", openChat);
+  closeBtn.addEventListener("click", closeChat);
 
-  closeBtn.addEventListener("click", (e) => {
-    e.preventDefault();
-    closeChat();
-  });
-
-  // ✅ Robust outside click: pointerdown + capture + checks entire widget root
-  document.addEventListener(
-    "pointerdown",
-    (e) => {
-      if (!isChatOpen()) return;
-      if (root.contains(e.target)) return;
-      closeChat();
-    },
-    true
-  );
-
-  // Escape closes chat
-  document.addEventListener("keydown", (e) => {
-    if (e.key === "Escape" && isChatOpen()) closeChat();
-  });
-
-  a11yToggle.addEventListener("click", (e) => {
-    e.preventDefault();
+  a11yToggle.addEventListener("click", () => {
     a11yPanel.toggleAttribute("hidden");
   });
 
-  a11yClose.addEventListener("click", (e) => {
-    e.preventDefault();
+  a11yClose.addEventListener("click", () => {
     a11yPanel.setAttribute("hidden", "true");
   });
 
@@ -485,7 +328,7 @@
     applyContrast();
   });
 
-  form.addEventListener("submit", (e) => {
+  form.addEventListener("submit", e => {
     e.preventDefault();
     const text = input.value.trim();
     if (!text) return;
@@ -494,15 +337,13 @@
   });
 
   /* -----------------------------
-     Initial load
+     Initial message + show intent UI
   ----------------------------- */
-  cleanupLegacyOrBadHistory();
-  renderHistory();
-
-  // If there is no history for THIS build, show intro immediately
-  if (loadHistory().length === 0) {
-    ensureFreshStartUI();
-  }
+  addMessage(
+    "assistant",
+    "Ask me anything about accessibility, inclusive ventures, or supporting people with disabilities."
+  );
+  renderIntentButtons();
 
   applyFontScale();
   applyContrast();

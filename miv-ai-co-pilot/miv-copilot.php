@@ -9,6 +9,7 @@
 if (!defined('ABSPATH')) {
     exit;
 }
+
 require_once plugin_dir_path(__FILE__) . 'includes/admin-pages.php';
 
 /**
@@ -35,21 +36,24 @@ function miv_enqueue_copilot_assets() {
         true // load in footer
     );
 
-    // Pass config to JS — correctly closed
+    // Pass config to JS
     wp_localize_script(
         'miv-copilot-script',
         'MIV_WIDGET_CONFIG',
         array(
-            'backendUrl' => 'http://localhost:8000', // change when deployed
+            'backendUrl'      => 'https://ict30018-project-b-ai-co-pilot.onrender.com',
+            'storageVersion'  => (string) filemtime($plugin_dir . 'assets/js/miv-widget.js'), // changes when file changes
         )
     );
-} // ← Closing the function
+}
 add_action('wp_enqueue_scripts', 'miv_enqueue_copilot_assets');
 
 /**
  * Output the widget HTML in the footer
  */
 function miv_inject_copilot_widget() {
+    // NOTE: keep these paths consistent with your plugin structure.
+    // If your images are stored at /assets/img/, change 'img/' to 'assets/img/' below.
     $button_img = plugins_url('img/miv-button.png', __FILE__);
     $logo_img   = plugins_url('img/miv-logo.jpg', __FILE__);
     ?>
