@@ -35,20 +35,16 @@ function miv_enqueue_copilot_assets() {
         true // load in footer
     );
 
-    // Pass config to JS
+    // Pass config to JS — correctly closed
     wp_localize_script(
         'miv-copilot-script',
         'MIV_WIDGET_CONFIG',
         array(
-            'backendUrl' => 'https://ict30018-project-b-ai-co-pilot.onrender.com
-            ', // If you want to go back to the test environment change to 'http://localhost:8000' 
-
-
+            'backendUrl' => 'http://localhost:8000', // change when deployed
         )
     );
-}
+} // ← Closing the function
 add_action('wp_enqueue_scripts', 'miv_enqueue_copilot_assets');
-
 
 /**
  * Output the widget HTML in the footer

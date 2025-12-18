@@ -1,220 +1,232 @@
 <?php
 if (!defined('ABSPATH')) exit;
 
+function miv_register_admin_menu() {
+  add_menu_page(
+    'MIV AI Co-Pilot',
+    'MIV AI Co-Pilot',
+    'manage_options',
+    'miv-ai-copilot',
+    'miv_render_admin_page',
+    'dashicons-format-chat',
+    58
+  );
+}
 add_action('admin_menu', 'miv_register_admin_menu');
-add_action('admin_init', 'miv_register_api_settings');
-add_action('admin_post_miv_upload_docs', 'miv_handle_doc_upload');
 
-function miv_register_admin_menu()
-{
-    add_menu_page(
-        'MIV AI Co-Pilot',
-        'MIV',
-        'manage_options',
-        'miv-dashboard',
-        'miv_render_dashboard_page',
-        'dashicons-robot',
-        30
-    );
+function miv_admin_assets($hook) {
+  // Only load on our page
+  if ($hook !== 'toplevel_page_miv-ai-copilot') return;
 
-    add_submenu_page(
-        'miv-dashboard',
-        'API Settings',
-        'API Settings',
-        'manage_options',
-        'miv-api-settings',
-        'miv_render_api_settings_page'
-    );
+  wp_enqueue_style(
+    'miv-admin-style',
+    plugin_dir_url(__FILE__) . '../assets/admin/admin.css',
+    array(),
+    filemtime(plugin_dir_path(__FILE__) . '../assets/admin/admin.css')
+  );
 
-    add_submenu_page(
-        'miv-dashboard',
-        'Knowledge Base',
-        'Knowledge Base',
-        'manage_options',
-        'miv-knowledge',
-        'miv_render_knowledge_page'
-    );
+  wp_enqueue_script(
+    'miv-admin-script',
+    plugin_dir_url(__FILE__) . '../assets/admin/admin.js',
+    array(),
+    filemtime(plugin_dir_path(__FILE__) . '../assets/admin/admin.js'),
+    true
+  );
+
+  wp_localize_script('miv-admin-script', 'MIV_ADMIN', array(
+    'ajaxUrl' => admin_url('admin-ajax.php'),
+    'nonce'   => wp_create_nonce('miv-admin-nonce'),
+  ));
 }
+add_action('admin_enqueue_scripts', 'miv_admin_assets');
+add_action('wp_ajax_miv_kb_upload', 'miv_handle_kb_upload_ajax');
+add_action('wp_ajax_miv_kb_list', 'miv_handle_kb_list_ajax');
 
-function miv_render_dashboard_page()
-{
-?>
-    <div class="wrap">
-        <h1>MIV Dashboard</h1>
-        <p>Use the menu items to configure API keys and upload documents for training.</p>
+/**
+ * Admin page UI
+ */
+function miv_render_admin_page() {
+  if (!current_user_can('manage_options')) return;
+
+  $tab = isset($_GET['tab']) ? sanitize_text_field($_GET['tab']) : 'settings';
+
+  // Read-only values (MVP)
+  $gemini_key_preview = miv_mask_secret(get_option('miv_gemini_api_key', ''));
+  $default_prompt = get_option('miv_default_prompt', "You are an AI Co-Pilot for accessibility and inclusive design...");
+
+  ?>
+  <div class="wrap miv-admin-wrap">
+    <div class="miv-admin-header">
+      <img class="miv-admin-logo" src="<?php echo esc_url(plugins_url('../img/miv-logo.jpg', __FILE__)); ?>" alt="MIV Logo" />
+      <div>
+        <div class="miv-admin-title">AI Co-Pilot Settings</div>
+        <div class="miv-admin-subtitle">Manage your MIV chatbot configuration and knowledge base (MVP).</div>
+      </div>
     </div>
-<?php
-}
 
-function miv_render_api_settings_page()
-{
-?>
-    <div class="wrap">
-        <h1>MIV – API Settings</h1>
-        <form method="post" action="options.php">
-            <?php
-            settings_fields('miv_api_settings');
-            do_settings_sections('miv-api-settings');
-            submit_button();
-            ?>
+    <div class="miv-admin-divider"></div>
+
+    <h2 class="nav-tab-wrapper miv-tabs">
+      <a href="?page=miv-ai-copilot&tab=settings" class="nav-tab <?php echo $tab === 'settings' ? 'nav-tab-active' : ''; ?>">Co-Pilot Settings</a>
+      <a href="?page=miv-ai-copilot&tab=kb" class="nav-tab <?php echo $tab === 'kb' ? 'nav-tab-active' : ''; ?>">Knowledge Base</a>
+    </h2>
+
+    <?php if ($tab === 'settings'): ?>
+
+      <div class="miv-panel">
+        <form method="post" class="miv-settings-form">
+          <div class="miv-form-grid">
+            <label class="miv-label" for="miv-backend-url">Backend URL</label>
+            <div>
+              <input type="url" id="miv-backend-url" class="miv-input" placeholder="https://api.miv-copilot.com" required />
+              <p class="miv-readonly-hint">The API endpoint for your hosted backend. (MVP: Read-only)</p>
+            </div>
+
+            <label class="miv-label" for="miv-gemini-key">Gemini API Key</label>
+            <div>
+              <input type="text" id="miv-gemini-key" class="miv-input" value="<?php echo esc_attr($gemini_key_preview); ?>" readonly />
+              <p class="miv-readonly-hint">Your Google Gemini API key. (MVP: Read-only)</p>
+            </div>
+
+            <label class="miv-label" for="miv-pinecone-key">Pinecone API Key</label>
+            <div>
+              <input type="text" id="miv-pinecone-key" class="miv-input" value="••••••••••••••••••••••••••••••••" readonly />
+              <p class="miv-readonly-hint">Your Pinecone vector DB key. (MVP: Read-only)</p>
+            </div>
+
+            <label class="miv-label" for="miv-pinecone-index">Pinecone Index Name</label>
+            <div>
+              <input type="text" id="miv-pinecone-index" class="miv-input" value="miv-knowledge-base" readonly />
+              <p class="miv-readonly-hint">The index name in Pinecone. (MVP: Read-only)</p>
+            </div>
+
+            <label class="miv-label" for="miv-default-prompt">Default System Prompt</label>
+            <div>
+              <textarea id="miv-default-prompt" class="miv-textarea" readonly><?php echo esc_textarea($default_prompt); ?></textarea>
+              <p class="miv-readonly-hint">The base prompt for the AI Co-Pilot. (MVP: Read-only)</p>
+            </div>
+          </div>
+
+          <div style="margin-top: 22px;">
+            <button type="submit" class="miv-btn">Save Changes</button>
+          </div>
         </form>
+      </div>
+
+    <?php else: // Knowledge Base tab ?>
+
+  <div class="miv-panel">
+    <div class="miv-kb-upload-section">
+      <div class="miv-kb-upload-title">Upload New Knowledge Base File:</div>
+      <div class="miv-kb-upload-row">
+        <input type="file" id="miv_kb_file" class="miv-kb-file-input" accept=".pdf,.docx" />
+        <button type="submit" id="miv-kb-upload-btn" class="miv-kb-upload-btn">Upload & Train</button>
+      </div>
+      <div class="miv-progress-wrap" id="miv-progress-wrap" style="display:none; margin: 20px auto; width: 60%; height: 8px; background: #e9ecef; border-radius: 4px; overflow: hidden;">
+        <div class="miv-progress-bar" id="miv-progress-bar" style="height: 100%; width: 0%; background: #6f42c1; transition: width 0.3s;"></div>
+      </div>
+      <div class="miv-status" id="miv-status" style="margin-top: 12px; font-size: 15px; color: #495057;"></div>
     </div>
-<?php
+
+    <table class="miv-kb-table">
+      <thead>
+        <tr>
+          <th>Filename</th>
+          <th>Uploaded</th>
+        </tr>
+      </thead>
+      <tbody id="miv-kb-files-tbody">
+        <!-- Filled by JS -->
+      </tbody>
+    </table>
+  </div>
+
+<?php endif; ?>
+
+  </div>
+  <?php
 }
 
-function miv_register_api_settings()
-{
-    register_setting('miv_api_settings', 'miv_gemini_api_key');
-    register_setting('miv_api_settings', 'miv_pinecone_api_key');
-    register_setting('miv_api_settings', 'miv_pinecone_index');
-    register_setting('miv_api_settings', 'miv_backend_url');
-
-    add_settings_section('miv_api_section', 'AI Configuration', null, 'miv-api-settings');
-
-    add_settings_field('miv_backend_url', 'Backend URL', 'miv_text_input', 'miv-api-settings', 'miv_api_section', ['option' => 'miv_backend_url']);
-    add_settings_field('miv_gemini_api_key', 'Gemini API Key', 'miv_text_input', 'miv-api-settings', 'miv_api_section', ['option' => 'miv_gemini_api_key']);
-    add_settings_field('miv_pinecone_api_key', 'Pinecone API Key', 'miv_text_input', 'miv-api-settings', 'miv_api_section', ['option' => 'miv_pinecone_api_key']);
-    add_settings_field('miv_pinecone_index', 'Pinecone Index Name', 'miv_text_input', 'miv-api-settings', 'miv_api_section', ['option' => 'miv_pinecone_index']);
+function miv_mask_secret($val) {
+  $val = (string)$val;
+  if ($val === '') return '';
+  $last = substr($val, -4);
+  return str_repeat('•', max(0, strlen($val) - 4)) . $last;
 }
 
-function miv_text_input($args)
-{
-    $value = esc_attr(get_option($args['option'], ''));
-    echo "<input type='text' name='{$args['option']}' value='{$value}' class='regular-text'>";
-}
-
-function miv_render_knowledge_page()
-{
-    $action = esc_url(admin_url('admin-post.php'));
-?>
-    <div class="wrap">
-        <h1>MIV – Knowledge Base</h1>
-
-        <?php if (!empty($_GET['success'])): ?>
-            <div class="notice notice-success is-dismissible">
-                <p><?php echo intval($_GET['success']); ?> file(s) uploaded successfully.</p>
-            </div>
-        <?php endif; ?>
-
-        <?php if (!empty($_GET['errors'])): ?>
-            <div class="notice notice-error is-dismissible">
-                <p><?php echo esc_html(urldecode($_GET['errors'])); ?></p>
-            </div>
-        <?php endif; ?>
-
-        <?php if (!empty($_GET['error']) && $_GET['error'] === 'no_file'): ?>
-            <div class="notice notice-warning is-dismissible">
-                <p>No files were selected for upload.</p>
-            </div>
-        <?php endif; ?>
-
-        <form method="post" action="<?php echo $action; ?>" enctype="multipart/form-data">
-            <input type="hidden" name="action" value="miv_upload_docs">
-            <?php wp_nonce_field('miv_upload_docs'); ?>
-
-            <p><input type="file" name="miv_docs[]" multiple accept=".pdf,.docx,.txt" /></p>
-            <?php submit_button('Upload & Train'); ?>
-        </form>
-    </div>
-<?php
-}
-
-function miv_handle_doc_upload()
-{
+function miv_handle_kb_upload_ajax() {
     if (!current_user_can('manage_options')) {
-        wp_die('Unauthorized');
+        wp_send_json_error(['message' => 'Unauthorized']);
     }
-    check_admin_referer('miv_upload_docs');
+    check_ajax_referer('miv-admin-nonce', 'nonce');
 
-    // Get backend URL from settings (or use hardcoded default)
-    $backend = get_option('miv_backend_url', 'https://ict30018-project-b-ai-co-pilot.onrender.com');
+    if (empty($_FILES['miv_kb_file'])) {
+        wp_send_json_error(['message' => 'No file uploaded']);
+    }
+
+    $file = $_FILES['miv_kb_file'];
+    $filename = sanitize_file_name($file['name']);
+
+    $allowed_extensions = ['pdf', 'docx'];
+    $file_extension = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
+    if (!in_array($file_extension, $allowed_extensions)) {
+        wp_send_json_error(['message' => "Invalid file type for $filename (only PDF and DOCX allowed)"]);
+    }
+
+    $backend = get_option('miv_backend_url', 'http://localhost:8000');
     $ingest_url = rtrim($backend, '/') . '/ingest';
 
-    // Check if files were uploaded
-    if (empty($_FILES['miv_docs']['tmp_name'][0])) {
-        wp_redirect(admin_url('admin.php?page=miv-knowledge&error=no_file'));
-        exit;
+    $boundary = wp_generate_password(24, false);
+    $file_contents = file_get_contents($file['tmp_name']);
+
+    $body = "--{$boundary}\r\n";
+    $body .= "Content-Disposition: form-data; name=\"file\"; filename=\"{$filename}\"\r\n";
+    $body .= "Content-Type: application/octet-stream\r\n\r\n";
+    $body .= $file_contents . "\r\n";
+    $body .= "--{$boundary}--\r\n";
+
+    $response = wp_remote_post($ingest_url, [
+        'timeout' => 120,
+        'body' => $body,
+        'headers' => ['Content-Type' => "multipart/form-data; boundary={$boundary}"],
+    ]);
+
+    if (is_wp_error($response)) {
+        wp_send_json_error(['message' => $response->get_error_message()]);
     }
 
-    $upload_count = 0;
-    $errors = [];
+    $response_code = wp_remote_retrieve_response_code($response);
+    $response_body = json_decode(wp_remote_retrieve_body($response), true);
 
-    // Process each uploaded file
-    foreach ($_FILES['miv_docs']['tmp_name'] as $index => $tmp_path) {
-        if (!$tmp_path || $_FILES['miv_docs']['error'][$index] !== UPLOAD_ERR_OK) {
-            continue;
-        }
+    if ($response_code === 200 && isset($response_body['success']) && $response_body['success']) {
+        wp_send_json_success($response_body);
+    } else {
+        $error_msg = $response_body['detail'] ?? 'Unknown error';
+        wp_send_json_error(['message' => $error_msg]);
+    }
+}
 
-        $filename = sanitize_file_name($_FILES['miv_docs']['name'][$index]);
+function miv_handle_kb_list_ajax() {
+    if (!current_user_can('manage_options')) {
+        wp_send_json_error(['message' => 'Unauthorized']);
+    }
+    check_ajax_referer('miv-admin-nonce', 'nonce');
 
-        // Validate file type
-        $allowed_extensions = ['pdf', 'docx'];
-        $file_extension = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
+    $backend = get_option('miv_backend_url', 'http://localhost:8000');
+    $list_url = rtrim($backend, '/') . '/files';
 
-        if (!in_array($file_extension, $allowed_extensions)) {
-            $errors[] = "$filename: Invalid file type (only PDF and DOCX allowed)";
-            continue;
-        }
+    $response = wp_remote_get($list_url, ['timeout' => 30]);
 
-        // Prepare multipart form data
-        $boundary = wp_generate_password(24, false);
-        $file_contents = file_get_contents($tmp_path);
-
-        // Build multipart body
-        $body = '';
-        $body .= "--{$boundary}\r\n";
-        $body .= "Content-Disposition: form-data; name=\"file\"; filename=\"{$filename}\"\r\n";
-        $body .= "Content-Type: application/octet-stream\r\n\r\n";
-        $body .= $file_contents . "\r\n";
-        $body .= "--{$boundary}--\r\n";
-
-        // Send request to FastAPI backend
-        $response = wp_remote_post($ingest_url, [
-            'timeout' => 120, // Increased timeout for large files
-            'body' => $body,
-            'headers' => [
-                'Content-Type' => "multipart/form-data; boundary={$boundary}",
-            ],
-        ]);
-
-        // Handle response
-        if (is_wp_error($response)) {
-            $errors[] = "$filename: " . $response->get_error_message();
-            continue;
-        }
-
-        $response_code = wp_remote_retrieve_response_code($response);
-        $response_body = wp_remote_retrieve_body($response);
-
-        if ($response_code === 200) {
-            $upload_count++;
-
-            // Parse response for additional info
-            $result = json_decode($response_body, true);
-            if ($result && isset($result['chunks_added'])) {
-                error_log("MIV: Successfully uploaded {$filename} - {$result['chunks_added']} chunks added");
-            }
-        } else {
-            $error_msg = "HTTP {$response_code}";
-            $result = json_decode($response_body, true);
-            if ($result && isset($result['detail'])) {
-                $error_msg .= ": " . $result['detail'];
-            }
-            $errors[] = "$filename: {$error_msg}";
-        }
+    if (is_wp_error($response)) {
+        wp_send_json_error(['message' => $response->get_error_message()]);
     }
 
-    // Build redirect URL with status
-    $redirect_url = admin_url('admin.php?page=miv-knowledge');
+    $response_code = wp_remote_retrieve_response_code($response);
+    $response_body = json_decode(wp_remote_retrieve_body($response), true);
 
-    if ($upload_count > 0) {
-        $redirect_url = add_query_arg('success', $upload_count, $redirect_url);
+    if ($response_code === 200 && isset($response_body['files'])) {
+        wp_send_json_success(['files' => $response_body['files']]);
+    } else {
+        wp_send_json_error(['message' => 'Failed to fetch file list from backend']);
     }
-
-    if (!empty($errors)) {
-        $redirect_url = add_query_arg('errors', urlencode(implode(' | ', $errors)), $redirect_url);
-    }
-
-    wp_redirect($redirect_url);
-    exit;
 }
