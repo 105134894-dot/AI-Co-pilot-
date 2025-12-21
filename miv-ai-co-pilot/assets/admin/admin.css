@@ -1,14 +1,36 @@
-/* --- MIV Admin UI - Image 1 Match --- */
+/* ======================================================
+   MIV Admin UI – Mekong Inclusive Ventures (Final)
+   ====================================================== */
 
+/* ---------- Brand Colours ---------- */
+:root {
+  --miv-primary: #007A87;        /* Teal */
+  --miv-primary-dark: #005E6A;   /* Dark teal */
+  --miv-accent: #E86F3C;         /* Warm orange */
+  --miv-bg-page: #F0F6F7;        /* Light teal page background */
+  --miv-text-dark: #2A2A2A;
+  --miv-text-muted: #6C757D;
+  --miv-border-light: #E0E0E0;
+}
+
+/* ---------- Page Background (Admin Page Only) ---------- */
+body.toplevel_page_miv-ai-copilot {
+  background-color: var(--miv-bg-page);
+}
+
+/* ---------- Layout Wrapper ---------- */
 .miv-admin-wrap {
   font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   max-width: 1100px;
   margin: 0 auto;
+  color: var(--miv-text-dark);
 }
 
+/* ---------- Header ---------- */
 .miv-admin-header {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 24px;
   padding: 32px 0 20px;
 }
@@ -23,7 +45,7 @@
 .miv-admin-title {
   font-size: 48px;
   font-weight: 700;
-  color: #3a6ea5;
+  color: var(--miv-primary-dark);
   letter-spacing: -0.5px;
   margin: 0;
   line-height: 1;
@@ -31,21 +53,26 @@
 
 .miv-admin-subtitle {
   font-size: 16px;
-  color: #6c757d;
+  color: var(--miv-text-muted);
   margin: 8px 0 0 0;
 }
 
 .miv-admin-divider {
   height: 1px;
-  background: #e0e0e0;
+  background: var(--miv-border-light);
   margin: 24px 0 32px;
 }
 
-/* Tabs */
+/* ---------- Tabs ---------- */
+.miv-tabs {
+  max-width: 800px;
+  margin: 0 auto 24px;
+}
+
 .miv-tabs .nav-tab {
   padding: 12px 24px;
   border-radius: 12px;
-  background: #e9ecef;
+  background: #E9ECEF;
   color: #495057;
   font-weight: 600;
   margin-right: 12px;
@@ -54,22 +81,23 @@
 }
 
 .miv-tabs .nav-tab-active {
-  background: #212529;
-  color: white;
+  background: var(--miv-primary-dark);
+  color: #ffffff;
 }
 
-/* Panel */
+/* ---------- Panel (White Card – Shared Width) ---------- */
 .miv-panel {
-  background: white;
+  max-width: 800px;
+  margin: 0 auto 40px;
+  background: #ffffff;
   border-radius: 20px;
   padding: 40px;
   box-shadow: 0 10px 30px rgba(0,0,0,0.08);
-  margin-bottom: 40px;
 }
 
-/* API Settings Page */
+/* ---------- API Settings ---------- */
 .miv-api-settings {
-  max-width: 800px;
+  /* inherits width from .miv-panel */
 }
 
 .miv-api-form-group {
@@ -80,27 +108,31 @@
   display: block;
   font-size: 18px;
   font-weight: 600;
-  color: #212529;
+  color: var(--miv-text-dark);
   margin-bottom: 12px;
 }
 
 .miv-api-input {
   width: 100%;
   padding: 16px 20px;
-  border: 1px solid #ced4da;
+  border: 1px solid #CED4DA;
   border-radius: 12px;
   font-size: 16px;
-  background: #f8f9fa;
+  background: #ffffff;
+  color: var(--miv-text-dark);
 }
 
 .miv-api-input:focus {
   outline: none;
-  border-color: #6f42c1;
-  box-shadow: 0 0 0 3px rgba(111, 66, 193, 0.2);
+  border-color: var(--miv-primary);
+  box-shadow: 0 0 0 3px rgba(0, 122, 135, 0.25);
 }
 
+/* ---------- Buttons ---------- */
 .miv-save-btn {
-  background: #0d6efd;
+  display: block;
+  margin: 32px auto 0;
+  background: var(--miv-primary);
   color: white;
   border: none;
   padding: 16px 36px;
@@ -108,25 +140,24 @@
   font-size: 18px;
   font-weight: 600;
   cursor: pointer;
-  margin-top: 20px;
 }
 
 .miv-save-btn:hover {
-  background: #0b5ed7;
+  background: var(--miv-primary-dark);
 }
 
-/* Purple system prompt panel (Image 1) */
+/* ---------- System Prompt ---------- */
 .miv-prompt-box {
-  background: #efe9ff;
+  background: #E3F2F3;
   border-radius: 18px;
   padding: 22px 24px;
-  color: #212529;
+  color: var(--miv-text-dark);
   line-height: 1.55;
   font-size: 15px;
-  box-shadow: inset 0 0 0 1px rgba(111, 66, 193, 0.12);
+  box-shadow: inset 0 0 0 1px rgba(0, 122, 135, 0.2);
 }
 
-/* Upload Section */
+/* ---------- Knowledge Base Upload ---------- */
 .miv-kb-upload-section {
   margin-bottom: 40px;
   text-align: center;
@@ -135,7 +166,7 @@
 .miv-kb-upload-title {
   font-size: 18px;
   font-weight: 600;
-  color: #212529;
+  color: var(--miv-text-dark);
   margin-bottom: 20px;
 }
 
@@ -149,14 +180,14 @@
 
 .miv-kb-file-input {
   padding: 12px 16px;
-  border: 2px dashed #ced4da;
+  border: 2px dashed #CED4DA;
   border-radius: 12px;
-  background: #f8f9fa;
+  background: #ffffff;
   font-size: 16px;
 }
 
 .miv-kb-upload-btn {
-  background: #6f42c1;
+  background: var(--miv-primary);
   color: white;
   border: none;
   padding: 14px 32px;
@@ -164,26 +195,31 @@
   font-size: 16px;
   font-weight: 600;
   cursor: pointer;
-  box-shadow: 0 4px 12px rgba(111, 66, 193, 0.3);
+  box-shadow: 0 4px 12px rgba(0, 122, 135, 0.3);
 }
 
 .miv-kb-upload-btn:hover {
-  background: #5a32a3;
+  background: var(--miv-primary-dark);
 }
 
-/* File pill used by admin.js */
+/* ---------- Progress Bar ---------- */
+#miv-progress-bar {
+  background: var(--miv-accent);
+}
+
+/* ---------- File Pill ---------- */
 .miv-file-pill {
   display: inline-block;
   padding: 6px 12px;
   border-radius: 999px;
-  background: #f1f3f5;
-  border: 1px solid #e9ecef;
+  background: #F1F3F5;
+  border: 1px solid #E9ECEF;
   font-weight: 600;
-  color: #212529;
+  color: var(--miv-text-dark);
   font-size: 13px;
 }
 
-/* Table */
+/* ---------- Table ---------- */
 .miv-kb-table {
   width: 100%;
   border-collapse: collapse;
@@ -193,7 +229,7 @@
 .miv-kb-table th {
   text-align: left;
   padding: 16px 20px;
-  background: #f1f3f5;
+  background: #E9ECEF;
   font-weight: 600;
   color: #495057;
   font-size: 15px;
@@ -201,7 +237,7 @@
 
 .miv-kb-table td {
   padding: 16px 20px;
-  border-bottom: 1px solid #e9ecef;
+  border-bottom: 1px solid #E9ECEF;
 }
 
 .miv-kb-table tr:last-child td {
