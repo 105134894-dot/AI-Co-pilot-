@@ -10,8 +10,9 @@
     return;
   }
 
-  let fontScale = 1;
-  let highContrast = false;
+  // Load saved settings with version key — persistence across updates
+  let fontScale = parseFloat(localStorage.getItem('mivFontScale_' + storageVersion) || '1');
+  let highContrast = localStorage.getItem('mivHighContrast_' + storageVersion) === 'true';
   let isLoading = false;
 
   // Intent state
@@ -137,7 +138,6 @@
     try {
       const legacy = localStorage.getItem(LEGACY_KEY);
       if (legacy && !localStorage.getItem(STORAGE_KEY)) {
-        // We do NOT migrate legacy; treat new build as new client
         localStorage.removeItem(LEGACY_KEY);
       }
     } catch {}
@@ -192,12 +192,10 @@
       btn.innerHTML = `<span class="miv-chip-text">${cat.label}</span>`;
 
       btn.addEventListener("click", () => {
-        // ✅ when selecting an option, remove prior temp prompts
         removeTempMessages();
 
         intent = cat.key;
 
-        // ✅ temp message: shows guidance, then disappears when next selection happens
         addMessage(
           "assistant",
           `Got it — ${cat.label}. Pick a quick question below, or type your own.`,
@@ -222,7 +220,6 @@
       btn.innerHTML = `<span class="miv-chip-text">${q}</span>`;
 
       btn.addEventListener("click", () => {
-        // ✅ remove temp prompts when user chooses a question
         removeTempMessages();
         input.value = "";
         sendMessage(q);
@@ -239,7 +236,6 @@
       intent = null;
       removeTempMessages();
       renderIntentButtons();
-      // show welcome again as temp
       addMessage("assistant", WELCOME_MESSAGE, { skipSave: true, isTemp: true });
     });
     quickWrap.appendChild(reset);
@@ -249,7 +245,6 @@
     quickWrap.style.display = "flex";
     renderIntentButtons();
 
-    // ✅ welcome is TEMP + NOT saved to history
     addMessage("assistant", WELCOME_MESSAGE, { skipSave: true, isTemp: true });
   }
 
@@ -263,8 +258,13 @@
     const wrapper = document.createElement("div");
     wrapper.className = "miv-message miv-message--" + role;
 
-    // ✅ mark temporary messages so we can remove them later
     if (options.isTemp) wrapper.setAttribute("data-temp", "1");
+
+    // ARIA for assistant messages — screen readers announce new responses
+    if (role === "assistant") {
+      wrapper.setAttribute('role', 'alert');
+      wrapper.setAttribute('aria-live', 'assertive');
+    }
 
     const lines = (text || "")
       .split("\n")
@@ -344,15 +344,17 @@
   }
 
   /* -----------------------------
-     Accessibility controls
+     Accessibility controls — FIXED font resize
   ----------------------------- */
   function applyFontScale() {
-    chatWindow.style.setProperty("--miv-font-scale", fontScale.toString());
+    chatWindow.style.setProperty('--miv-font-scale', fontScale);
+    localStorage.setItem('mivFontScale_' + storageVersion, fontScale);
   }
 
   function applyContrast() {
     chatWindow.classList.toggle("miv-chat-window--high-contrast", highContrast);
     contrastToggle.setAttribute("aria-pressed", highContrast);
+    localStorage.setItem('mivHighContrast_' + storageVersion, highContrast);
   }
 
   // ✅ Clear chat: resets to fresh start WITHOUT saving any “cleared” message
@@ -384,7 +386,6 @@
     launcherBtn.style.display = "none";
     a11yPanel.setAttribute("hidden", "true");
 
-    // If this build has no history + UI is empty, start fresh immediately
     if (loadHistory().length === 0 && messagesEl.children.length === 0) {
       ensureFreshStartUI();
     }
@@ -403,7 +404,6 @@
     if (!text || isLoading) return;
     isLoading = true;
 
-    // Hide chips once user starts interacting
     quickWrap.style.display = "none";
 
     addMessage("user", text);
@@ -444,7 +444,6 @@
     closeChat();
   });
 
-  // ✅ Robust outside click: pointerdown + capture + checks entire widget root
   document.addEventListener(
     "pointerdown",
     (e) => {
@@ -455,7 +454,6 @@
     true
   );
 
-  // Escape closes chat
   document.addEventListener("keydown", (e) => {
     if (e.key === "Escape" && isChatOpen()) closeChat();
   });
@@ -470,13 +468,14 @@
     a11yPanel.setAttribute("hidden", "true");
   });
 
+  // Font resize buttons — NOW WORKING with persistence
   fontDec.addEventListener("click", () => {
-    fontScale = Math.max(0.9, fontScale - 0.1);
+    fontScale = Math.max(0.8, fontScale - 0.1);
     applyFontScale();
   });
 
   fontInc.addEventListener("click", () => {
-    fontScale = Math.min(1.2, fontScale + 0.1);
+    fontScale = Math.min(1.6, fontScale + 0.1);
     applyFontScale();
   });
 
@@ -499,7 +498,6 @@
   cleanupLegacyOrBadHistory();
   renderHistory();
 
-  // If there is no history for THIS build, show intro immediately
   if (loadHistory().length === 0) {
     ensureFreshStartUI();
   }

@@ -23,7 +23,7 @@
   height: auto;
 }
 
-/* Chat window */
+/* Chat window — base scaling in rem */
 .miv-chat-window {
     --miv-radius: 18px;
     --miv-bg: #5ba085;
@@ -34,6 +34,7 @@
     --miv-assistant-text: #0d3040;
     --miv-input-bg: #ffffff;
     --miv-border-subtle: rgba(0, 0, 0, 0.08);
+    --miv-font-scale: 1;
 
     width: min(440px, 92vw);
     max-height: 80vh;
@@ -44,7 +45,12 @@
     box-shadow: 0 20px 40px rgba(0, 0, 0, 0.35);
     overflow: hidden;
     color: #102329;
-    font-size: calc(14px * var(--miv-font-scale, 1));
+    font-size: calc(1rem * var(--miv-font-scale)); /* Base in rem for scaling */
+}
+
+/* Ensure scaling propagates to all children */
+.miv-chat-window * {
+    font-size: inherit !important; /* Force inheritance, override any px */
 }
 
 /* visible state */
@@ -276,7 +282,7 @@
     }
 }
 
-/* Input row */
+/* Input row — fixed height, text scales without stretching box */
 .miv-input-row {
     background: var(--miv-input-bg);
     padding: 0.55rem 0.9rem 0.7rem;
@@ -291,14 +297,11 @@
     border-radius: 999px;
     border: 1px solid var(--miv-border-subtle);
     padding: 0.4rem 0.75rem;
-    font-size: 0.82rem;
     background: inherit;
     color: inherit;
-}
-
-.miv-input:focus {
-    outline: 2px solid #ffffff;
-    outline-offset: 1px;
+    min-height: 40px; /* Fixed height — prevents stretching */
+    line-height: 1.2; /* Clean line-height for scaling */
+    font-size: inherit; /* Inherit from parent scale */
 }
 
 .miv-send-btn {
@@ -307,13 +310,9 @@
     background: #0e5c82;
     color: #ffffff;
     padding: 0.4rem 0.8rem;
-    font-size: 0.8rem;
+    font-size: inherit; /* Scale button text too */
     cursor: pointer;
-}
-
-.miv-send-btn:disabled {
-    opacity: 0.6;
-    cursor: default;
+    min-height: 40px; /* Match input height */
 }
 
 /* Screen-reader only text */

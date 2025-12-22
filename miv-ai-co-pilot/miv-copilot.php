@@ -121,7 +121,14 @@ function miv_inject_copilot_widget() {
                 </div>
             </section>
 
-            <section class="miv-messages" id="miv-messages"></section>
+            <!-- Updated with ARIA attributes for screen readers -->
+            <section 
+                class="miv-messages" 
+                id="miv-messages"
+                aria-live="polite"
+                role="log"
+                aria-label="Chat messages">
+            </section>
 
             <form class="miv-input-row" id="miv-form">
                 <input
