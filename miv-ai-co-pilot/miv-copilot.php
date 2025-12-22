@@ -41,7 +41,7 @@ function miv_enqueue_copilot_assets() {
         'miv-copilot-script',
         'MIV_WIDGET_CONFIG',
         array(
-            'backendUrl'      => 'https://ict30018-project-b-ai-co-pilot.onrender.com',
+            'backendUrl'      => 'https://miv-copilot-backend-132087945456.us-east4.run.app',
             'storageVersion'  => (string) filemtime($plugin_dir . 'assets/js/miv-widget.js'), // changes when file changes
         )
     );

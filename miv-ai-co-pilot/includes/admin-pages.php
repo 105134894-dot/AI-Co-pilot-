@@ -81,7 +81,7 @@ function miv_get_backend_url()
 {
     $url = get_option('miv_backend_url', '');
     // Default to Render URL if no setting is saved
-    if (!$url) $url = 'https://ict30018-project-b-ai-co-pilot.onrender.com';
+    if (!$url) $url = 'https://miv-copilot-backend-132087945456.us-east4.run.app';
     return rtrim($url, '/');
 }
 
