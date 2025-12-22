@@ -28,8 +28,8 @@ if not all([GEMINI_API_KEY, PINECONE_API_KEY, PINECONE_INDEX_NAME]):
 # Configure Gemini with new API
 client = genai.Client(api_key=GEMINI_API_KEY)
 
-# --- CHANGED: Use 2.0-flash-lite for better Rate Limits ---
-CHAT_MODEL_NAME = 'gemini-2.0-flash-lite'
+# --- CHANGED: Use 2.5-flash-lite ---
+CHAT_MODEL_NAME = 'gemini-2.5-flash-lite'
 EMBED_MODEL_NAME = 'text-embedding-004'
 
 # Configure Pinecone
