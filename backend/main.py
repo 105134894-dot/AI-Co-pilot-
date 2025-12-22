@@ -28,8 +28,8 @@ if not all([GEMINI_API_KEY, PINECONE_API_KEY, PINECONE_INDEX_NAME]):
 # Configure Gemini with new API
 client = genai.Client(api_key=GEMINI_API_KEY)
 
-# Using specific model
-CHAT_MODEL_NAME = 'gemini-2.5-flash'
+# --- CHANGED: Use 1.5-flash for better Rate Limits (15 RPM vs 20/day) ---
+CHAT_MODEL_NAME = 'gemini-1.5-flash'
 EMBED_MODEL_NAME = 'text-embedding-004'
 
 # Configure Pinecone
@@ -116,7 +116,6 @@ def extract_docx_paragraphs_with_headings(file_bytes: bytes):
             paragraphs.append((p.text.strip(), current_heading))
 
     return paragraphs
-
 
 def extract_pdf_paragraphs_with_headings(file_bytes: bytes):
     """
