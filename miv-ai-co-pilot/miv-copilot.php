@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Plugin Name: MIV AI Co-Pilot
  * Description: Adds the custom AI Accessibility Co-Pilot widget to the footer of the website.
@@ -15,9 +16,18 @@ require_once plugin_dir_path(__FILE__) . 'includes/admin-pages.php';
 /**
  * Enqueue CSS and JS for the widget
  */
-function miv_enqueue_copilot_assets() {
+function miv_enqueue_copilot_assets()
+{
     $plugin_url = plugin_dir_url(__FILE__);
     $plugin_dir = plugin_dir_path(__FILE__);
+
+    wp_enqueue_script(
+        'marked-js',
+        'https://cdn.jsdelivr.net/npm/marked@4.0.0/marked.min.js',
+        array(),
+        '4.0.0',
+        true
+    );
 
     // CSS (cache-busted)
     wp_enqueue_style(
@@ -41,7 +51,8 @@ function miv_enqueue_copilot_assets() {
         'miv-copilot-script',
         'MIV_WIDGET_CONFIG',
         array(
-            'backendUrl'      => 'https://miv-copilot-backend-132087945456.us-east1.run.app',
+            //'backendUrl'      => 'https://miv-copilot-backend-132087945456.us-east1.run.app', // !Comment out this line to run locally!
+            'backendUrl'      => 'http://localhost:8000',                                       // !Comment out this line to use production!
             'storageVersion'  => (string) filemtime($plugin_dir . 'assets/js/miv-widget.js'), // changes when file changes
         )
     );
@@ -51,23 +62,22 @@ add_action('wp_enqueue_scripts', 'miv_enqueue_copilot_assets');
 /**
  * Output the widget HTML in the footer
  */
-function miv_inject_copilot_widget() {
+function miv_inject_copilot_widget()
+{
     // NOTE: keep these paths consistent with your plugin structure.
     // If your images are stored at /assets/img/, change 'img/' to 'assets/img/' below.
     $button_img = plugins_url('img/miv-button.png', __FILE__);
     $logo_img   = plugins_url('img/miv-logo.jpg', __FILE__);
-    ?>
+?>
     <div class="miv-widget-root" id="miv-widget-root">
         <button
             class="miv-launcher-btn"
             id="miv-launcher-btn"
-            aria-label="Open MIV AI Co-Pilot"
-        >
+            aria-label="Open MIV AI Co-Pilot">
             <img
                 src="<?php echo esc_url($button_img); ?>"
                 alt="Open AI Co-Pilot"
-                class="miv-launcher-img"
-            />
+                class="miv-launcher-img" />
         </button>
 
         <div
@@ -75,15 +85,13 @@ function miv_inject_copilot_widget() {
             id="miv-chat-window"
             role="dialog"
             aria-modal="true"
-            aria-hidden="true"
-        >
+            aria-hidden="true">
             <header class="miv-chat-header">
                 <div class="miv-header-left">
                     <img
                         src="<?php echo esc_url($logo_img); ?>"
                         alt="MIV logo"
-                        class="miv-logo"
-                    />
+                        class="miv-logo" />
                 </div>
 
                 <div class="miv-header-title">AI Co-Pilot</div>
@@ -122,8 +130,8 @@ function miv_inject_copilot_widget() {
             </section>
 
             <!-- Updated with ARIA attributes for screen readers -->
-            <section 
-                class="miv-messages" 
+            <section
+                class="miv-messages"
                 id="miv-messages"
                 aria-live="polite"
                 role="log"
@@ -136,18 +144,16 @@ function miv_inject_copilot_widget() {
                     type="text"
                     class="miv-input"
                     placeholder="Ask me anything"
-                    aria-label="Message input"
-                />
+                    aria-label="Message input" />
                 <button
                     type="submit"
                     class="miv-send-btn"
-                    id="miv-send-btn"
-                >
+                    id="miv-send-btn">
                     Send
                 </button>
             </form>
         </div>
     </div>
-    <?php
+<?php
 }
 add_action('wp_footer', 'miv_inject_copilot_widget');

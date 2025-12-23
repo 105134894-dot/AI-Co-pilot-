@@ -9,18 +9,20 @@
 
 /* Launcher pill */
 .miv-launcher-btn {
-  border: none;
-  padding: 0;
-  background: transparent;
-  cursor: pointer;
-  display: inline-block;
+    border: none;
+    padding: 0;
+    background: transparent;
+    cursor: pointer;
+    display: inline-block;
 }
 
 .miv-launcher-img {
-  display: block;
-  width: 320px;      /* ✅ make bigger */
-  max-width: 70vw;   /* ✅ responsive on small screens */
-  height: auto;
+    display: block;
+    width: 320px;
+    /* ✅ make bigger */
+    max-width: 70vw;
+    /* ✅ responsive on small screens */
+    height: auto;
 }
 
 /* Chat window — base scaling in rem */
@@ -38,19 +40,22 @@
 
     width: min(440px, 92vw);
     max-height: 80vh;
-    display: none; /* hidden by default */
+    display: none;
+    /* hidden by default */
     flex-direction: column;
     border-radius: var(--miv-radius);
     background: var(--miv-bg);
     box-shadow: 0 20px 40px rgba(0, 0, 0, 0.35);
     overflow: hidden;
     color: #102329;
-    font-size: calc(1rem * var(--miv-font-scale)); /* Base in rem for scaling */
+    font-size: calc(1rem * var(--miv-font-scale));
+    /* Base in rem for scaling */
 }
 
 /* Ensure scaling propagates to all children */
 .miv-chat-window * {
-    font-size: inherit !important; /* Force inheritance, override any px */
+    font-size: inherit !important;
+    /* Force inheritance, override any px */
 }
 
 /* visible state */
@@ -269,6 +274,7 @@
 }
 
 @keyframes miv-bounce {
+
     0%,
     80%,
     100% {
@@ -299,9 +305,12 @@
     padding: 0.4rem 0.75rem;
     background: inherit;
     color: inherit;
-    min-height: 40px; /* Fixed height — prevents stretching */
-    line-height: 1.2; /* Clean line-height for scaling */
-    font-size: inherit; /* Inherit from parent scale */
+    min-height: 40px;
+    /* Fixed height — prevents stretching */
+    line-height: 1.2;
+    /* Clean line-height for scaling */
+    font-size: inherit;
+    /* Inherit from parent scale */
 }
 
 .miv-send-btn {
@@ -310,9 +319,11 @@
     background: #0e5c82;
     color: #ffffff;
     padding: 0.4rem 0.8rem;
-    font-size: inherit; /* Scale button text too */
+    font-size: inherit;
+    /* Scale button text too */
     cursor: pointer;
-    min-height: 40px; /* Match input height */
+    min-height: 40px;
+    /* Match input height */
 }
 
 /* Screen-reader only text */
@@ -346,39 +357,120 @@
 
 /* ChatGPT-style formatting */
 .miv-message h4 {
-  font-size: 0.95rem;
-  font-weight: 600;
-  margin: 0.3rem 0 0.4rem;
+    font-size: 0.95rem;
+    font-weight: 600;
+    margin: 0.3rem 0 0.4rem;
 }
 
 .miv-message h5 {
-  font-size: 0.85rem;
-  font-weight: 600;
-  margin: 0.4rem 0 0.3rem;
-  opacity: 0.85;
+    font-size: 0.85rem;
+    font-weight: 600;
+    margin: 0.4rem 0 0.3rem;
+    opacity: 0.85;
 }
 
 .miv-message ul,
 .miv-message ol {
-  margin: 0.2rem 0 0.2rem 1.2rem;
-  padding: 0;
+    margin: 0.2rem 0 0.2rem 1.2rem;
+    padding: 0;
 }
 
 .miv-message li {
-  margin-bottom: 0.25rem;
+    margin-bottom: 0.25rem;
 }
 
 .miv-message p {
-  margin: 0.2rem 0;
+    margin: 0.2rem 0;
 }
 
 .miv-quick-title {
-  font-weight: 600;
-  color: var(--miv-header-text);
-  margin: 0.25rem 0 0.35rem;
-  font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--miv-header-text);
+    margin: 0.25rem 0 0.35rem;
+    font-size: 0.85rem;
 }
 
 .miv-chip--secondary {
-  background: rgba(255,255,255,0.65);
+    background: rgba(255, 255, 255, 0.65);
+}
+
+/* Markdown content styling */
+.miv-message-parsed p {
+    margin-bottom: 10px;
+}
+
+.miv-message-parsed p:last-child {
+    margin-bottom: 0;
+}
+
+.miv-message-parsed ul,
+.miv-message-parsed ol {
+    margin: 10px 0;
+    padding-left: 20px;
+}
+
+.miv-message-parsed li {
+    margin-bottom: 8px;
+    line-height: 1.5;
+}
+
+.miv-message-parsed strong {
+    font-weight: 700;
+    color: inherit;
+}
+
+.miv-message-parsed h1,
+.miv-message-parsed h2,
+.miv-message-parsed h3,
+.miv-message-parsed h4 {
+    margin-top: 15px;
+    margin-bottom: 10px;
+    font-weight: 600;
+}
+
+.miv-message-parsed h1 {
+    font-size: 1.4em;
+}
+
+.miv-message-parsed h2 {
+    font-size: 1.3em;
+}
+
+.miv-message-parsed h3 {
+    font-size: 1.2em;
+}
+
+.miv-message-parsed h4 {
+    font-size: 1.1em;
+}
+
+.miv-message-parsed a {
+    color: #0066cc;
+    text-decoration: underline;
+    word-break: break-word;
+}
+
+.miv-message-parsed a:hover {
+    color: #0052a3;
+}
+
+.miv-message-parsed code {
+    background: rgba(0, 0, 0, 0.1);
+    padding: 2px 5px;
+    border-radius: 3px;
+    font-family: 'Courier New', monospace;
+    font-size: 0.9em;
+}
+
+.miv-message-parsed pre {
+    background: rgba(0, 0, 0, 0.05);
+    padding: 12px;
+    border-radius: 6px;
+    overflow-x: auto;
+    margin: 10px 0;
+}
+
+.miv-message-parsed pre code {
+    background: none;
+    padding: 0;
 }
