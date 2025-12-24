@@ -29,6 +29,16 @@
         const tableBody = getTableBody();
         if (!tableBody) return;
 
+        // Show loading state
+        tableBody.innerHTML = `
+            <tr>
+                <td colspan="2" style="text-align: center; padding: 40px;">
+                    <div class="miv-loader"></div>
+                    <div style="margin-top: 16px; color: #6C757D;">Loading files...</div>
+                </td>
+            </tr>
+        `;
+
         const fd = new FormData();
         fd.append("action", "miv_kb_list");
         fd.append("nonce", MIV_ADMIN.nonce);
@@ -37,10 +47,32 @@
             const res = await fetch(MIV_ADMIN.ajaxUrl, { method: "POST", body: fd });
             const data = await res.json();
 
-            if (!data.success) return;
+            if (!data.success) {
+                tableBody.innerHTML = `
+                    <tr>
+                        <td colspan="2" style="text-align: center; padding: 40px; color: #DC3545;">
+                            Unable to load files. Please try again.
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            const files = data.data.files || [];
+
+            if (files.length === 0) {
+                tableBody.innerHTML = `
+                    <tr>
+                        <td colspan="2" style="text-align: center; padding: 40px; color: #6C757D;">
+                            No files uploaded yet. Upload your first document above.
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
 
             tableBody.innerHTML = "";
-            (data.data.files || []).forEach((f) => {
+            files.forEach((f) => {
                 const tr = document.createElement("tr");
 
                 const tdName = document.createElement("td");
@@ -55,6 +87,13 @@
             });
         } catch (e) {
             console.warn("Could not load file list", e);
+            tableBody.innerHTML = `
+                <tr>
+                    <td colspan="2" style="text-align: center; padding: 40px; color: #DC3545;">
+                        Error loading files. Please check console for details.
+                    </td>
+                </tr>
+            `;
         }
     }
 

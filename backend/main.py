@@ -429,3 +429,41 @@ async def ingest_endpoint(file: UploadFile = File(...)):
             status_code=500,
             detail=f"An error occurred during ingestion: {str(e)}"
         )
+    
+@app.get("/list-documents")
+async def list_documents():
+    """
+    Returns a list of unique document filenames currently stored in Pinecone.
+    Uses a dummy vector query to sample the index and extract unique sources.
+    """
+    try:
+        # Query with a zero-vector to retrieve a sample of vectors
+        # Increase top_k if you expect more than 1000 chunks total
+        results = index.query(
+            vector=[0.0] * 768,  # Match your embedding dimension
+            top_k=1000,  # Adjust based on your expected total chunks
+            include_metadata=True
+        )
+        
+        # Extract unique source filenames
+        sources = set()
+        for match in results.get('matches', []):
+            metadata = match.get('metadata', {})
+            if 'source' in metadata:
+                sources.add(metadata['source'])
+        
+        # Convert to list with basic info
+        documents = [{"filename": src} for src in sorted(sources)]
+        
+        return {
+            "success": True,
+            "documents": documents,
+            "total_chunks_sampled": len(results.get('matches', []))
+        }
+        
+    except Exception as e:
+        print(f"❌ Error listing documents: {str(e)}")
+        raise HTTPException(
+            status_code=500, 
+            detail=f"Failed to list documents: {str(e)}"
+        )
