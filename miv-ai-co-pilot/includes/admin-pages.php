@@ -80,7 +80,7 @@ function miv_mask_secret($value)
 function miv_get_backend_url()
 {
     $url = get_option('miv_backend_url', '');
-    // Default to Google cloud URL if no setting is saved
+    // Default to Render URL if no setting is saved
     if (!$url) $url = 'https://miv-copilot-backend-132087945456.us-east1.run.app';
     return rtrim($url, '/');
 }
@@ -238,39 +238,8 @@ function miv_kb_list()
         wp_send_json_error(array('message' => 'Forbidden'));
     }
     check_ajax_referer('miv_admin_nonce', 'nonce');
-
-    $backend_url = miv_get_backend_url();
-
-    // Call the backend to get the list
-    $response = wp_remote_get($backend_url . '/list-documents', array(
-        'timeout' => 30
-    ));
-
-    if (is_wp_error($response)) {
-        wp_send_json_error(array(
-            'message' => 'Could not connect to backend: ' . $response->get_error_message()
-        ));
-        return;
-    }
-
-    $body = wp_remote_retrieve_body($response);
-    $data = json_decode($body, true);
-
-    if (!isset($data['success']) || !$data['success']) {
-        wp_send_json_error(array('message' => 'Backend returned an error'));
-        return;
-    }
-
-    // Format for frontend
-    $files = array();
-    foreach ($data['documents'] as $doc) {
-        $files[] = array(
-            'filename' => $doc['filename'],
-            'uploaded' => 'Recently' // You could add timestamps to metadata for real dates
-        );
-    }
-
-    wp_send_json_success(array('files' => $files));
+    // Return empty list as per MVP requirements
+    wp_send_json_success(array('files' => array()));
 }
 
 add_action('wp_ajax_miv_kb_upload', 'miv_kb_upload');
