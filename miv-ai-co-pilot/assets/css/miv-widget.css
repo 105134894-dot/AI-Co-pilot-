@@ -3,26 +3,27 @@
     position: fixed;
     inset: auto 1.5rem 1.5rem auto;
     z-index: 9999;
-    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
-        sans-serif;
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
 
 /* Launcher pill */
 .miv-launcher-btn {
-    border: none;
-    padding: 0;
-    background: transparent;
-    cursor: pointer;
-    display: inline-block;
+  border: none;
+  padding: 0;
+  background: transparent;
+  cursor: pointer;
+  display: inline-block;
+}
+
+.miv-hidden { 
+  display: none !important;
 }
 
 .miv-launcher-img {
-    display: block;
-    width: 320px;
-    /* ✅ make bigger */
-    max-width: 70vw;
-    /* ✅ responsive on small screens */
-    height: auto;
+  display: block;
+  width: 320px;      /* Larger */
+  max-width: 70vw;   /* Responsive on small screens */
+  height: auto;
 }
 
 /* Chat window — base scaling in rem */
@@ -38,10 +39,9 @@
     --miv-border-subtle: rgba(0, 0, 0, 0.08);
     --miv-font-scale: 1;
 
-    width: min(440px, 92vw);
+    width: min(660px, 92vw);
     max-height: 80vh;
-    display: none;
-    /* hidden by default */
+    display: none; /* hidden by default */
     flex-direction: column;
     border-radius: var(--miv-radius);
     background: var(--miv-bg);
@@ -49,13 +49,11 @@
     overflow: hidden;
     color: #102329;
     font-size: calc(1rem * var(--miv-font-scale));
-    /* Base in rem for scaling */
 }
 
 /* Ensure scaling propagates to all children */
 .miv-chat-window * {
     font-size: inherit !important;
-    /* Force inheritance, override any px */
 }
 
 /* visible state */
@@ -75,6 +73,108 @@
     color: #ffffff;
 }
 
+/* Additional WCAG AA/AAA Themes */
+
+/* Theme 1 — Blue Calm */
+.miv-theme-blue {
+  --miv-bg: #3b6ea5;
+  --miv-header-text: #ffffff;
+  --miv-body-bg: #ffffff;
+  --miv-assistant-bubble: #f1f5fb;
+  --miv-assistant-text: #0d3040;
+  --miv-user-bubble: #0e5c82;
+  --miv-user-text: #ffffff;
+  --miv-input-bg: #ffffff;
+}
+
+/* Theme 2 — Deep Navy */
+.miv-theme-navy {
+  --miv-bg: #0a1a33;
+  --miv-header-text: #ffffff;
+  --miv-body-bg: #0f223f;
+  --miv-assistant-bubble: #1a2f52;
+  --miv-assistant-text: #ffffff;
+  --miv-user-bubble: #2b4a7a;
+  --miv-user-text: #ffffff;
+  --miv-input-bg: #1a2f52;
+}
+
+/* Theme 3 — Warm Sepia */
+.miv-theme-sepia {
+  --miv-bg: #7b5e3b;
+  --miv-header-text: #ffffff;
+  --miv-body-bg: #f7f2e9;
+  --miv-assistant-bubble: #f0e7d8;
+  --miv-assistant-text: #3a2a1a;
+  --miv-user-bubble: #8c6b47;
+  --miv-user-text: #ffffff;
+  --miv-input-bg: #ffffff;
+}
+
+/* Theme 4 — Slate Grey */
+.miv-theme-slate {
+  --miv-bg: #4a5568;
+  --miv-header-text: #ffffff;
+  --miv-body-bg: #f7fafc;
+  --miv-assistant-bubble: #edf2f7;
+  --miv-assistant-text: #1a202c;
+  --miv-user-bubble: #2d3748;
+  --miv-user-text: #ffffff;
+  --miv-input-bg: #ffffff;
+}
+
+/* Theme 5 — High Contrast Yellow */
+.miv-theme-yellow {
+  --miv-bg: #ffcc00;
+  --miv-header-text: #000000;
+  --miv-body-bg: #000000;
+  --miv-assistant-bubble: #1a1a1a;
+  --miv-assistant-text: #ffffff;
+  --miv-user-bubble: #ffcc00;
+  --miv-user-text: #000000;
+  --miv-input-bg: #111111;
+}
+
+/* Small icon-style reset button for accessibility panel */
+#miv-a11y-reset {
+  width: 32px;
+  height: 32px;
+  min-width: 32px;
+  min-height: 32px;
+  border-radius: 8px;
+  border: none;
+  background: rgba(0,0,0,0.18);
+  color: #ffffff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 1rem;
+  padding: 0;
+  margin-left: auto; /* pushes it to the right side */
+  transition: background 140ms ease, transform 120ms ease;
+}
+
+/* Hover + focus states */
+#miv-a11y-reset:hover {
+  background: rgba(0,0,0,0.28);
+  transform: translateY(-1px);
+}
+
+#miv-a11y-reset:focus {
+  outline: 3px solid rgba(14,92,130,0.18);
+}
+
+/* High contrast mode support */
+.miv-chat-window--high-contrast #miv-a11y-reset {
+  background: #222;
+  color: #fff;
+}
+
+.miv-chat-window--high-contrast #miv-a11y-reset:hover {
+  background: #444;
+}
+
 /* Header */
 .miv-chat-header {
     display: flex;
@@ -83,10 +183,14 @@
     padding: 0.85rem 0.9rem 0.75rem;
     color: var(--miv-header-text);
     position: relative;
+    justify-content: space-between;
 }
 
 .miv-header-left {
     flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
 }
 
 .miv-logo {
@@ -99,28 +203,54 @@
 .miv-header-title {
     font-size: 1.1rem;
     font-weight: 600;
-    flex: 1;
     text-align: left;
 }
 
-/* Close + A11y */
+/* Header actions — back, forward, clear, accessibility, close */
+.miv-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+}
+
+.miv-header-icon-btn,
 .miv-close-btn,
 .miv-a11y-toggle {
     border: none;
     background: rgba(0, 0, 0, 0.18);
     color: #ffffff;
-    width: 26px;
-    height: 26px;
+    width: 28px;
+    height: 28px;
     border-radius: 999px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    margin-left: 0.3rem;
+    font-size: 1rem;
 }
 
+.miv-header-icon-btn:hover,
 .miv-close-btn:hover,
 .miv-a11y-toggle:hover {
+    background: rgba(0, 0, 0, 0.32);
+}
+
+/* Forward button — same style as back button */
+.miv-header-icon-btn-forward {
+    border: none;
+    background: rgba(0, 0, 0, 0.18);
+    color: #ffffff;
+    width: 28px;
+    height: 28px;
+    border-radius: 999px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 1rem;
+}
+
+.miv-header-icon-btn-forward:hover {
     background: rgba(0, 0, 0, 0.32);
 }
 
@@ -161,10 +291,6 @@
     align-items: center;
     justify-content: space-between;
     margin-top: 0.35rem;
-}
-
-.miv-a11y-label {
-    flex: 1;
 }
 
 .miv-a11y-controls {
@@ -227,6 +353,17 @@
     line-height: 1.25;
 }
 
+.miv-quick-title {
+  font-weight: 600;
+  color: var(--miv-header-text);
+  margin: 0.25rem 0 0.35rem;
+  font-size: 0.85rem;
+}
+
+.miv-chip--secondary {
+  background: rgba(255,255,255,0.65);
+}
+
 /* Messages area */
 .miv-messages {
     background: var(--miv-body-bg);
@@ -235,7 +372,7 @@
     overflow-y: auto;
 }
 
-/* ChatGPT-like blocks (no strong bubbles) */
+/* ChatGPT-like messages */
 .miv-message {
     max-width: 100%;
     margin-bottom: 0.6rem;
@@ -265,30 +402,15 @@
     animation: miv-bounce 0.9s infinite ease-in-out;
 }
 
-.miv-dot:nth-child(2) {
-    animation-delay: 0.15s;
-}
-
-.miv-dot:nth-child(3) {
-    animation-delay: 0.3s;
-}
+.miv-dot:nth-child(2) { animation-delay: 0.15s; }
+.miv-dot:nth-child(3) { animation-delay: 0.3s; }
 
 @keyframes miv-bounce {
-
-    0%,
-    80%,
-    100% {
-        transform: translateY(0);
-        opacity: 0.5;
-    }
-
-    40% {
-        transform: translateY(-3px);
-        opacity: 1;
-    }
+    0%, 80%, 100% { transform: translateY(0); opacity: 0.5; }
+    40% { transform: translateY(-3px); opacity: 1; }
 }
 
-/* Input row — fixed height, text scales without stretching box */
+/* Input row */
 .miv-input-row {
     background: var(--miv-input-bg);
     padding: 0.55rem 0.9rem 0.7rem;
@@ -306,11 +428,8 @@
     background: inherit;
     color: inherit;
     min-height: 40px;
-    /* Fixed height — prevents stretching */
     line-height: 1.2;
-    /* Clean line-height for scaling */
     font-size: inherit;
-    /* Inherit from parent scale */
 }
 
 .miv-send-btn {
@@ -320,10 +439,8 @@
     color: #ffffff;
     padding: 0.4rem 0.8rem;
     font-size: inherit;
-    /* Scale button text too */
     cursor: pointer;
     min-height: 40px;
-    /* Match input height */
 }
 
 /* Screen-reader only text */
@@ -344,133 +461,15 @@
     .miv-widget-root {
         inset: auto 0.75rem 0.75rem auto;
     }
-
     .miv-chat-window {
         width: min(100vw - 1.5rem, 420px);
         max-height: 85vh;
     }
 }
 
-.miv-widget-root {
-    font-family: sans-serif;
-}
-
 /* ChatGPT-style formatting */
-.miv-message h4 {
-    font-size: 0.95rem;
-    font-weight: 600;
-    margin: 0.3rem 0 0.4rem;
-}
-
-.miv-message h5 {
-    font-size: 0.85rem;
-    font-weight: 600;
-    margin: 0.4rem 0 0.3rem;
-    opacity: 0.85;
-}
-
-.miv-message ul,
-.miv-message ol {
-    margin: 0.2rem 0 0.2rem 1.2rem;
-    padding: 0;
-}
-
-.miv-message li {
-    margin-bottom: 0.25rem;
-}
-
-.miv-message p {
-    margin: 0.2rem 0;
-}
-
-.miv-quick-title {
-    font-weight: 600;
-    color: var(--miv-header-text);
-    margin: 0.25rem 0 0.35rem;
-    font-size: 0.85rem;
-}
-
-.miv-chip--secondary {
-    background: rgba(255, 255, 255, 0.65);
-}
-
-/* Markdown content styling */
-.miv-message-parsed p {
-    margin-bottom: 10px;
-}
-
-.miv-message-parsed p:last-child {
-    margin-bottom: 0;
-}
-
-.miv-message-parsed ul,
-.miv-message-parsed ol {
-    margin: 10px 0;
-    padding-left: 20px;
-}
-
-.miv-message-parsed li {
-    margin-bottom: 8px;
-    line-height: 1.5;
-}
-
-.miv-message-parsed strong {
-    font-weight: 700;
-    color: inherit;
-}
-
-.miv-message-parsed h1,
-.miv-message-parsed h2,
-.miv-message-parsed h3,
-.miv-message-parsed h4 {
-    margin-top: 15px;
-    margin-bottom: 10px;
-    font-weight: 600;
-}
-
-.miv-message-parsed h1 {
-    font-size: 1.4em;
-}
-
-.miv-message-parsed h2 {
-    font-size: 1.3em;
-}
-
-.miv-message-parsed h3 {
-    font-size: 1.2em;
-}
-
-.miv-message-parsed h4 {
-    font-size: 1.1em;
-}
-
-.miv-message-parsed a {
-    color: #0066cc;
-    text-decoration: underline;
-    word-break: break-word;
-}
-
-.miv-message-parsed a:hover {
-    color: #0052a3;
-}
-
-.miv-message-parsed code {
-    background: rgba(0, 0, 0, 0.1);
-    padding: 2px 5px;
-    border-radius: 3px;
-    font-family: 'Courier New', monospace;
-    font-size: 0.9em;
-}
-
-.miv-message-parsed pre {
-    background: rgba(0, 0, 0, 0.05);
-    padding: 12px;
-    border-radius: 6px;
-    overflow-x: auto;
-    margin: 10px 0;
-}
-
-.miv-message-parsed pre code {
-    background: none;
-    padding: 0;
-}
+.miv-message h4 { font-size: 0.95rem; font-weight: 600; margin: 0.3rem 0 0.4rem; }
+.miv-message h5 { font-size: 0.85rem; font-weight: 600; margin: 0.4rem 0 0.3rem; opacity: 0.85; }
+.miv-message ul, .miv-message ol { margin: 0.2rem 0 0.2rem 1.2rem; padding: 0; }
+.miv-message li { margin-bottom: 0.25rem; }
+.miv-message p { margin: 0.2rem 0; }
