@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Plugin Name: MIV AI Co-Pilot
  * Description: Adds the custom AI Accessibility Co-Pilot widget to the footer of the website.
@@ -15,9 +16,20 @@ require_once plugin_dir_path(__FILE__) . 'includes/admin-pages.php';
 /**
  * Enqueue CSS and JS for the widget
  */
-function miv_enqueue_copilot_assets() {
+function miv_enqueue_copilot_assets()
+{
     $plugin_url = plugin_dir_url(__FILE__);
     $plugin_dir = plugin_dir_path(__FILE__);
+
+    // --- MERGE CRITICAL: Keep marked.js from Main Branch ---
+    // This is required for the Markdown parsing in the JS
+    wp_enqueue_script(
+        'marked-js',
+        'https://cdn.jsdelivr.net/npm/marked@4.0.0/marked.min.js',
+        array(),
+        '4.0.0',
+        true
+    );
 
     // CSS (cache-busted)
     wp_enqueue_style(
@@ -33,7 +45,7 @@ function miv_enqueue_copilot_assets() {
         $plugin_url . 'assets/js/miv-widget.js',
         array(),
         filemtime($plugin_dir . 'assets/js/miv-widget.js'),
-        true
+        true // load in footer
     );
 
     // Pass config to JS
@@ -41,8 +53,9 @@ function miv_enqueue_copilot_assets() {
         'miv-copilot-script',
         'MIV_WIDGET_CONFIG',
         array(
-            'backendUrl'     => 'https://miv-copilot-backend-132087945456.us-east1.run.app',
-            'storageVersion' => (string) filemtime($plugin_dir . 'assets/js/miv-widget.js'),
+            'backendUrl'      => 'https://miv-copilot-backend-132087945456.us-east1.run.app', // !Comment out this line to run locally!
+            //'backendUrl'      => 'http://localhost:8000',                                       // !Comment out this line to use production!
+            'storageVersion'  => (string) filemtime($plugin_dir . 'assets/js/miv-widget.js'),
         )
     );
 }
@@ -50,22 +63,23 @@ add_action('wp_enqueue_scripts', 'miv_enqueue_copilot_assets');
 
 /**
  * Output the widget HTML in the footer
+ * --- MERGE CRITICAL: Use HTML from Peter-Branch ---
+ * This contains the new Back/Forward/Clear buttons required by the new JS.
  */
-function miv_inject_copilot_widget() {
+function miv_inject_copilot_widget()
+{
     $button_img = plugins_url('img/miv-button.png', __FILE__);
-    $logo_img   = plugins_url('img/miv-logo.png', __FILE__);
-    ?>
+    $logo_img   = plugins_url('img/miv-logo.png', __FILE__); // Using .png from Peter's branch
+?>
     <div class="miv-widget-root" id="miv-widget-root">
         <button
             class="miv-launcher-btn"
             id="miv-launcher-btn"
-            aria-label="Open MIV AI Co-Pilot"
-        >
+            aria-label="Open MIV AI Co-Pilot">
             <img
                 src="<?php echo esc_url($button_img); ?>"
                 alt="Open AI Co-Pilot"
-                class="miv-launcher-img"
-            />
+                class="miv-launcher-img" />
         </button>
 
         <div
@@ -73,56 +87,45 @@ function miv_inject_copilot_widget() {
             id="miv-chat-window"
             role="dialog"
             aria-modal="true"
-            aria-hidden="true"
-        >
+            aria-hidden="true">
             <header class="miv-chat-header">
 
-                <!-- LEFT: logo + title -->
                 <div class="miv-header-left">
                     <img
                         src="<?php echo esc_url($logo_img); ?>"
                         alt="MIV logo"
-                        class="miv-logo"
-                    />
+                        class="miv-logo" />
                     <div class="miv-header-title">AI Co-Pilot</div>
                 </div>
 
-                <!-- RIGHT: back, forward, clear, accessibility, close -->
                 <div class="miv-header-actions">
 
-                    <!-- Back navigation -->
                     <button
                         class="miv-header-icon-btn"
                         id="miv-back-btn"
                         aria-label="Go back"
                         title="Back"
-                        hidden
-                    >
+                        hidden>
                         ←
                     </button>
 
-                    <!-- Forward navigation -->
                     <button
                         class="miv-header-icon-btn"
                         id="miv-forward-btn"
                         aria-label="Go forward"
                         title="Forward"
-                        hidden
-                    >
+                        hidden>
                         →
                     </button>
 
-                    <!-- Clear chat -->
                     <button
                         class="miv-header-icon-btn"
                         id="miv-clear-chat-btn"
                         aria-label="Clear chat"
-                        title="Reset"
-                    >
+                        title="Reset">
                         ⟳
                     </button>
 
-                    <!-- Accessibility toggle -->
                     <button
                         class="miv-a11y-toggle"
                         id="miv-a11y-toggle"
@@ -130,7 +133,6 @@ function miv_inject_copilot_widget() {
                         ♿
                     </button>
 
-                    <!-- Close -->
                     <button
                         class="miv-close-btn"
                         id="miv-close-btn"
@@ -140,11 +142,10 @@ function miv_inject_copilot_widget() {
                 </div>
             </header>
 
-            <!-- Accessibility panel -->
             <section class="miv-a11y-panel" id="miv-a11y-panel" hidden>
                 <div class="miv-a11y-panel-header">
                     <span>Accessibility Settings</span>
-                    <button 
+                    <button
                         id="miv-a11y-reset"
                         aria-label="Reset accessibility settings">
                         ↺
@@ -153,7 +154,7 @@ function miv_inject_copilot_widget() {
                     <button
                         class="miv-a11y-close"
                         id="miv-a11y-close"
-                        aria-label="Close accessibility panel"                    >
+                        aria-label="Close accessibility panel">
                         ×
                     </button>
                 </div>
@@ -171,14 +172,12 @@ function miv_inject_copilot_widget() {
                     <button
                         type="button"
                         class="miv-a11y-btn"
-                        id="miv-contrast-toggle"
-                    >
+                        id="miv-contrast-toggle">
                         Toggle Contrast
                     </button>
                 </div>
             </section>
 
-            <!-- Messages -->
             <section
                 class="miv-messages"
                 id="miv-messages"
@@ -187,25 +186,22 @@ function miv_inject_copilot_widget() {
                 aria-label="Chat messages">
             </section>
 
-            <!-- Input -->
             <form class="miv-input-row" id="miv-form">
                 <input
                     id="miv-user-input"
                     type="text"
                     class="miv-input"
                     placeholder="Ask me anything"
-                    aria-label="Message input"
-                />
+                    aria-label="Message input" />
                 <button
                     type="submit"
                     class="miv-send-btn"
-                    id="miv-send-btn"
-                >
+                    id="miv-send-btn">
                     Send
                 </button>
             </form>
         </div>
     </div>
-    <?php
+<?php
 }
 add_action('wp_footer', 'miv_inject_copilot_widget');

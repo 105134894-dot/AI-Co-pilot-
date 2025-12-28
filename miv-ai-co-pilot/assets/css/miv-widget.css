@@ -8,25 +8,27 @@
 
 /* Launcher pill */
 .miv-launcher-btn {
-  border: none;
-  padding: 0;
-  background: transparent;
-  cursor: pointer;
-  display: inline-block;
+    border: none;
+    padding: 0;
+    background: transparent;
+    cursor: pointer;
+    display: inline-block;
 }
 
-.miv-hidden { 
-  display: none !important;
+/* Helper class from Peter's branch */
+.miv-hidden {
+    display: none !important;
 }
 
 .miv-launcher-img {
-  display: block;
-  width: 320px;      /* Larger */
-  max-width: 70vw;   /* Responsive on small screens */
-  height: auto;
+    display: block;
+    width: 320px;
+    max-width: 70vw;
+    /* Responsive on small screens */
+    height: auto;
 }
 
-/* Chat window — base scaling in rem */
+/* Chat window — Using Peter's Wider Dimensions */
 .miv-chat-window {
     --miv-radius: 18px;
     --miv-bg: #5ba085;
@@ -40,8 +42,10 @@
     --miv-font-scale: 1;
 
     width: min(660px, 92vw);
+    /* Updated to 660px from Peter's branch */
     max-height: 80vh;
-    display: none; /* hidden by default */
+    display: none;
+    /* hidden by default */
     flex-direction: column;
     border-radius: var(--miv-radius);
     background: var(--miv-bg);
@@ -61,6 +65,8 @@
     display: flex;
 }
 
+/* --- THEMES (From Peter's Branch) --- */
+
 /* High contrast mode */
 .miv-chat-window--high-contrast {
     --miv-bg: #050505;
@@ -73,106 +79,64 @@
     color: #ffffff;
 }
 
-/* Additional WCAG AA/AAA Themes */
-
 /* Theme 1 — Blue Calm */
 .miv-theme-blue {
-  --miv-bg: #3b6ea5;
-  --miv-header-text: #ffffff;
-  --miv-body-bg: #ffffff;
-  --miv-assistant-bubble: #f1f5fb;
-  --miv-assistant-text: #0d3040;
-  --miv-user-bubble: #0e5c82;
-  --miv-user-text: #ffffff;
-  --miv-input-bg: #ffffff;
+    --miv-bg: #3b6ea5;
+    --miv-header-text: #ffffff;
+    --miv-body-bg: #ffffff;
+    --miv-assistant-bubble: #f1f5fb;
+    --miv-assistant-text: #0d3040;
+    --miv-user-bubble: #0e5c82;
+    --miv-user-text: #ffffff;
+    --miv-input-bg: #ffffff;
 }
 
 /* Theme 2 — Deep Navy */
 .miv-theme-navy {
-  --miv-bg: #0a1a33;
-  --miv-header-text: #ffffff;
-  --miv-body-bg: #0f223f;
-  --miv-assistant-bubble: #1a2f52;
-  --miv-assistant-text: #ffffff;
-  --miv-user-bubble: #2b4a7a;
-  --miv-user-text: #ffffff;
-  --miv-input-bg: #1a2f52;
+    --miv-bg: #0a1a33;
+    --miv-header-text: #ffffff;
+    --miv-body-bg: #0f223f;
+    --miv-assistant-bubble: #1a2f52;
+    --miv-assistant-text: #ffffff;
+    --miv-user-bubble: #2b4a7a;
+    --miv-user-text: #ffffff;
+    --miv-input-bg: #1a2f52;
 }
 
 /* Theme 3 — Warm Sepia */
 .miv-theme-sepia {
-  --miv-bg: #7b5e3b;
-  --miv-header-text: #ffffff;
-  --miv-body-bg: #f7f2e9;
-  --miv-assistant-bubble: #f0e7d8;
-  --miv-assistant-text: #3a2a1a;
-  --miv-user-bubble: #8c6b47;
-  --miv-user-text: #ffffff;
-  --miv-input-bg: #ffffff;
+    --miv-bg: #7b5e3b;
+    --miv-header-text: #ffffff;
+    --miv-body-bg: #f7f2e9;
+    --miv-assistant-bubble: #f0e7d8;
+    --miv-assistant-text: #3a2a1a;
+    --miv-user-bubble: #8c6b47;
+    --miv-user-text: #ffffff;
+    --miv-input-bg: #ffffff;
 }
 
 /* Theme 4 — Slate Grey */
 .miv-theme-slate {
-  --miv-bg: #4a5568;
-  --miv-header-text: #ffffff;
-  --miv-body-bg: #f7fafc;
-  --miv-assistant-bubble: #edf2f7;
-  --miv-assistant-text: #1a202c;
-  --miv-user-bubble: #2d3748;
-  --miv-user-text: #ffffff;
-  --miv-input-bg: #ffffff;
+    --miv-bg: #4a5568;
+    --miv-header-text: #ffffff;
+    --miv-body-bg: #f7fafc;
+    --miv-assistant-bubble: #edf2f7;
+    --miv-assistant-text: #1a202c;
+    --miv-user-bubble: #2d3748;
+    --miv-user-text: #ffffff;
+    --miv-input-bg: #ffffff;
 }
 
 /* Theme 5 — High Contrast Yellow */
 .miv-theme-yellow {
-  --miv-bg: #ffcc00;
-  --miv-header-text: #000000;
-  --miv-body-bg: #000000;
-  --miv-assistant-bubble: #1a1a1a;
-  --miv-assistant-text: #ffffff;
-  --miv-user-bubble: #ffcc00;
-  --miv-user-text: #000000;
-  --miv-input-bg: #111111;
-}
-
-/* Small icon-style reset button for accessibility panel */
-#miv-a11y-reset {
-  width: 32px;
-  height: 32px;
-  min-width: 32px;
-  min-height: 32px;
-  border-radius: 8px;
-  border: none;
-  background: rgba(0,0,0,0.18);
-  color: #ffffff;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  font-size: 1rem;
-  padding: 0;
-  margin-left: auto; /* pushes it to the right side */
-  transition: background 140ms ease, transform 120ms ease;
-}
-
-/* Hover + focus states */
-#miv-a11y-reset:hover {
-  background: rgba(0,0,0,0.28);
-  transform: translateY(-1px);
-}
-
-#miv-a11y-reset:focus {
-  outline: 3px solid rgba(14,92,130,0.18);
-}
-
-/* High contrast mode support */
-.miv-chat-window--high-contrast #miv-a11y-reset {
-  background: #222;
-  color: #fff;
-}
-
-.miv-chat-window--high-contrast #miv-a11y-reset:hover {
-  background: #444;
+    --miv-bg: #ffcc00;
+    --miv-header-text: #000000;
+    --miv-body-bg: #000000;
+    --miv-assistant-bubble: #1a1a1a;
+    --miv-assistant-text: #ffffff;
+    --miv-user-bubble: #ffcc00;
+    --miv-user-text: #000000;
+    --miv-input-bg: #111111;
 }
 
 /* Header */
@@ -184,11 +148,13 @@
     color: var(--miv-header-text);
     position: relative;
     justify-content: space-between;
+    /* Updated from Peter's branch */
 }
 
 .miv-header-left {
     flex-shrink: 0;
     display: flex;
+    /* Updated layout */
     align-items: center;
     gap: 0.5rem;
 }
@@ -213,6 +179,7 @@
     gap: 0.3rem;
 }
 
+/* Common button style for header icons */
 .miv-header-icon-btn,
 .miv-close-btn,
 .miv-a11y-toggle {
@@ -235,7 +202,7 @@
     background: rgba(0, 0, 0, 0.32);
 }
 
-/* Forward button — same style as back button */
+/* Forward button specificity */
 .miv-header-icon-btn-forward {
     border: none;
     background: rgba(0, 0, 0, 0.18);
@@ -276,6 +243,41 @@
     align-items: center;
     font-weight: 600;
     margin-bottom: 0.35rem;
+}
+
+/* Small icon-style reset button for accessibility panel (From Peter's branch) */
+#miv-a11y-reset {
+    width: 32px;
+    height: 32px;
+    min-width: 32px;
+    min-height: 32px;
+    border-radius: 8px;
+    border: none;
+    background: rgba(0, 0, 0, 0.18);
+    color: #ffffff;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 1rem;
+    padding: 0;
+    margin-left: auto;
+    /* pushes it to the right side */
+    transition: background 140ms ease, transform 120ms ease;
+}
+
+#miv-a11y-reset:hover {
+    background: rgba(0, 0, 0, 0.28);
+    transform: translateY(-1px);
+}
+
+#miv-a11y-reset:focus {
+    outline: 3px solid rgba(14, 92, 130, 0.18);
+}
+
+.miv-chat-window--high-contrast #miv-a11y-reset {
+    background: #222;
+    color: #fff;
 }
 
 .miv-a11y-close {
@@ -345,23 +347,15 @@
     color: #111111;
 }
 
-.miv-chip-icon {
-    flex-shrink: 0;
-}
-
-.miv-chip-text {
-    line-height: 1.25;
-}
-
 .miv-quick-title {
-  font-weight: 600;
-  color: var(--miv-header-text);
-  margin: 0.25rem 0 0.35rem;
-  font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--miv-header-text);
+    margin: 0.25rem 0 0.35rem;
+    font-size: 0.85rem;
 }
 
 .miv-chip--secondary {
-  background: rgba(255,255,255,0.65);
+    background: rgba(255, 255, 255, 0.65);
 }
 
 /* Messages area */
@@ -372,7 +366,7 @@
     overflow-y: auto;
 }
 
-/* ChatGPT-like messages */
+/* ChatGPT-like blocks */
 .miv-message {
     max-width: 100%;
     margin-bottom: 0.6rem;
@@ -402,12 +396,27 @@
     animation: miv-bounce 0.9s infinite ease-in-out;
 }
 
-.miv-dot:nth-child(2) { animation-delay: 0.15s; }
-.miv-dot:nth-child(3) { animation-delay: 0.3s; }
+.miv-dot:nth-child(2) {
+    animation-delay: 0.15s;
+}
+
+.miv-dot:nth-child(3) {
+    animation-delay: 0.3s;
+}
 
 @keyframes miv-bounce {
-    0%, 80%, 100% { transform: translateY(0); opacity: 0.5; }
-    40% { transform: translateY(-3px); opacity: 1; }
+
+    0%,
+    80%,
+    100% {
+        transform: translateY(0);
+        opacity: 0.5;
+    }
+
+    40% {
+        transform: translateY(-3px);
+        opacity: 1;
+    }
 }
 
 /* Input row */
@@ -461,15 +470,120 @@
     .miv-widget-root {
         inset: auto 0.75rem 0.75rem auto;
     }
+
     .miv-chat-window {
         width: min(100vw - 1.5rem, 420px);
         max-height: 85vh;
     }
 }
 
-/* ChatGPT-style formatting */
-.miv-message h4 { font-size: 0.95rem; font-weight: 600; margin: 0.3rem 0 0.4rem; }
-.miv-message h5 { font-size: 0.85rem; font-weight: 600; margin: 0.4rem 0 0.3rem; opacity: 0.85; }
-.miv-message ul, .miv-message ol { margin: 0.2rem 0 0.2rem 1.2rem; padding: 0; }
-.miv-message li { margin-bottom: 0.25rem; }
-.miv-message p { margin: 0.2rem 0; }
+/* Basic Formatting */
+.miv-message h4 {
+    font-size: 0.95rem;
+    font-weight: 600;
+    margin: 0.3rem 0 0.4rem;
+}
+
+.miv-message h5 {
+    font-size: 0.85rem;
+    font-weight: 600;
+    margin: 0.4rem 0 0.3rem;
+    opacity: 0.85;
+}
+
+.miv-message ul,
+.miv-message ol {
+    margin: 0.2rem 0 0.2rem 1.2rem;
+    padding: 0;
+}
+
+.miv-message li {
+    margin-bottom: 0.25rem;
+}
+
+.miv-message p {
+    margin: 0.2rem 0;
+}
+
+/* --- MERGE CRITICAL: MARKDOWN STYLING (RESTORED FROM MAIN) --- */
+/* This was missing in Peter's branch and handles the marked.js output */
+
+.miv-message-parsed p {
+    margin-bottom: 10px;
+}
+
+.miv-message-parsed p:last-child {
+    margin-bottom: 0;
+}
+
+.miv-message-parsed ul,
+.miv-message-parsed ol {
+    margin: 10px 0;
+    padding-left: 20px;
+}
+
+.miv-message-parsed li {
+    margin-bottom: 8px;
+    line-height: 1.5;
+}
+
+.miv-message-parsed strong {
+    font-weight: 700;
+    color: inherit;
+}
+
+.miv-message-parsed h1,
+.miv-message-parsed h2,
+.miv-message-parsed h3,
+.miv-message-parsed h4 {
+    margin-top: 15px;
+    margin-bottom: 10px;
+    font-weight: 600;
+}
+
+.miv-message-parsed h1 {
+    font-size: 1.4em;
+}
+
+.miv-message-parsed h2 {
+    font-size: 1.3em;
+}
+
+.miv-message-parsed h3 {
+    font-size: 1.2em;
+}
+
+.miv-message-parsed h4 {
+    font-size: 1.1em;
+}
+
+.miv-message-parsed a {
+    color: #0066cc;
+    text-decoration: underline;
+    word-break: break-word;
+}
+
+.miv-message-parsed a:hover {
+    color: #0052a3;
+}
+
+.miv-message-parsed code {
+    background: rgba(0, 0, 0, 0.1);
+    padding: 2px 5px;
+    border-radius: 3px;
+    font-family: 'Courier New', monospace;
+    font-size: 0.9em;
+}
+
+.miv-message-parsed pre {
+    background: rgba(0, 0, 0, 0.05);
+    padding: 12px;
+    border-radius: 6px;
+    overflow-x: auto;
+    margin: 10px 0;
+}
+
+.miv-message-parsed pre code {
+    background: none;
+    padding: 0;
+}
