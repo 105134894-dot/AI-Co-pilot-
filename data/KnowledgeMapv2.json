@@ -1,0 +1,138 @@
+[
+  {
+    "id": "1",
+    "user_intent": "Comply with web content accessibility standards",
+    "tool_name": "Worldwibe Web Consortium (W3C) Web Content Accessibility Guidelines (WCAG)",
+    "URL": "https://www.w3.org/TR/WCAG22/ ",
+    "in_database": "yes",
+    "text_to_embed": "User Intent: Comply with web content accessibility standards\nTool Name: Worldwibe Web Consortium (W3C) Web Content Accessibility Guidelines (WCAG)\nDescription: WCAG 2.2 is a set of guidelines designed to make digital content more accessible, usable, and inclusive for people with disabilities by improving navigation, input methods, and overall user experience.\nCommon User Queries:\nI want to make my online services more inclusive\nI want to understand what digital inclusion means\nHow do I design for users with low digital literacy?"
+  },
+  {
+    "id": "2",
+    "user_intent": "Select and use accessible web authoring tools",
+    "tool_name": "Authoring Tool Accessibility Guidelines (ATAG)",
+    "URL": "https://www.w3.org/TR/2015/REC-ATAG20-20150924/Overview.html ",
+    "in_database": "yes",
+    "text_to_embed": "User Intent: Select and use accessible web authoring tools\nTool Name: Authoring Tool Accessibility Guidelines (ATAG)\nDescription: ATAG 2.0 is a set of guidelines that authors (e.g., web developers, designers, writers, etc.) must follow to create web content that conforms to WCAG standards and is itself accessible for people with disabilities to use.\nCommon User Queries:\nI want to find tools to make my website more accessible\nHow do I test my website for accessibility issues?\nHow do I choose the right accessibility plugins?"
+  },
+  {
+    "id": "3",
+    "user_intent": "Implement advanced accessibility features",
+    "tool_name": "Accessible Rich Internet Applications (WAI-ARIA)",
+    "URL": "https://www.w3.org/TR/wai-aria-1.2/",
+    "in_database": "yes",
+    "text_to_embed": "User Intent: Implement advanced accessibility features\nTool Name: Accessible Rich Internet Applications (WAI-ARIA)\nDescription: The WAI?ARIA 1.2  specification defines a standard ontology of roles, states, and properties that web authors can use to make web applications accessible to users of assistive technologies.\nCommon User Queries:\nI want to make forms accessible to screen readers\nI want to improve navigation for users with disability\nHow do I make my web app accessible with a keyboard"
+  },
+  {
+    "id": "4",
+    "user_intent": "Design content for cognitive and learning disabilities",
+    "tool_name": "Cognitive Accessibility Guidance",
+    "URL": "https://www.w3.org/WAI/WCAG2/supplemental/#cognitiveaccessibilityguidance",
+    "in_database": "no",
+    "text_to_embed": "User Intent: Design content for cognitive and learning disabilities\nTool Name: Cognitive Accessibility Guidance\nDescription: This supplemental guidance to the WCAG standard offers recommendations for better addressing the accessibility needs of people with cognitive and learning disabilities.\nCommon User Queries:\nI want to make my content easier to understand\nHow do I reduce cognitive overload on my website?\nI want to design for users with learning difficulties"
+  },
+  {
+    "id": "5",
+    "user_intent": "Plan and organise physical meetings",
+    "tool_name": "Accessible Meetings Toolkit",
+    "URL": "https://www.cbm.org.au/resource/accessible-meetings-and-events-a-toolkit ",
+    "in_database": "yes",
+    "text_to_embed": "User Intent: Plan and organise physical meetings\nTool Name: Accessible Meetings Toolkit\nDescription: Practical guidance on organising accessible and inclusive events and meetings, with tips on issues to consider in the planning, delivery and follow-up stages.\nCommon User Queries:\nI want to plan an accessible and inclusive event\nHow do I provide accessible seating and navigation?\nI want to ensure my event information is accessible to everyone"
+  },
+  {
+    "id": "6",
+    "user_intent": "Engage effectively with people with disability",
+    "tool_name": "CBMA Disability Movement Strenghening Framework",
+    "URL": "https://www.cbm.org.au/resource/cbm-australias-disability-movement-strengthening-framework",
+    "in_database": "yes",
+    "text_to_embed": "User Intent: Engage effectively with people with disability\nTool Name: CBMA Disability Movement Strenghening Framework\nDescription: This document outlines CBM Australia’s principles and practical approach to strengthening disability movements through rights-based, locally led, and partnership-focused support.\nCommon User Queries:\nI want to communicate respectfully with people with disabilities\nI want to involve people with disability in decision-making\nHow do use inclusive language when talking about disability?"
+  },
+  {
+    "id": "7",
+    "user_intent": "Apply gender-inclusive practices",
+    "tool_name": "CBMA-The-inclusion-of-women-with-disabilities-in-gender-programming-and-womens-movements",
+    "URL": "https://www.cbm.org.au/resource/missing-voices-inclusion-of-women-with-disabilities-in-gender-programming-and-womens-movements ",
+    "in_database": "yes",
+    "text_to_embed": "User Intent: Apply gender-inclusive practices\nTool Name: CBMA-The-inclusion-of-women-with-disabilities-in-gender-programming-and-womens-movements\nDescription: This paper highlights how women with disabilities are often overlooked in mainstream gender programming and women’s rights movements, and calls for stronger inclusion, partnership with OPDs, and intersectional approaches to advance their rights and leadership.\nCommon User Queries:\nHow do I make my services more gender inclusive?\nI want to avoid gender bias in my content\nHow do I design policies that support gender equality?"
+  },
+  {
+    "id": "8",
+    "user_intent": "Conduct gender and disability analysis",
+    "tool_name": "CBM Disability and gender Analysis Toolkit",
+    "URL": "https://www.cbm.org.au/resource/cbm-disability-gender-toolkit ",
+    "in_database": "yes",
+    "text_to_embed": "User Intent: Conduct gender and disability analysis\nTool Name: CBM Disability and gender Analysis Toolkit\nDescription: This toolkit provides a structured, participatory process to help organisations assess and strengthen disability and gender equality across their policies, culture, programmes and practices.\nCommon User Queries:\nI want to understand how gender and disability intersect\nHow do I identify barriers faced by women with disabilities?\nI want to apply a gender and disability framework"
+  },
+  {
+    "id": "9",
+    "user_intent": "Design and implement inclusive data collection",
+    "tool_name": "Collecting and using data on disability to inform inclusive development",
+    "URL": "https://www.cbm.org.au/resource/collecting-and-using-data-on-disability-to-inform-inclusive-development",
+    "in_database": "yes",
+    "text_to_embed": "User Intent: Design and implement inclusive data collection\nTool Name: Collecting and using data on disability to inform inclusive development\nDescription: The document explains why and how to collect disability-disaggregated data — and offers practical guidance and tools — to ensure that development programs are inclusive of people with disabilities at all stages.\nCommon User Queries: \nHow do I design accessible surveys?\nI want to collect disability data ethically\nHow do I disaggregate data by gender and disability?"
+  },
+  {
+    "id": "10",
+    "user_intent": "Identify essential assistive products",
+    "tool_name": "WHO Priority Assistive Product List",
+    "URL": "https://www.who.int/teams/health-product-policy-and-standards/assistive-and-medical-technology/assistive-technology/promoting-access ",
+    "in_database": "yes",
+    "text_to_embed": "User Intent: Identify essential assistive products\nTool Name: WHO Priority Assistive Product List\nDescription: This documented oulines a curated list of assistive technological products aimed towards practitioners wanting to deepen their understanding of these products and serving as a blueprint for Member States to develop their own assistive product list. \nCommon User Queries:\nHow do I support users that rely on screen readers?\nI want to understand different types of assistive tools\nWhat assistive tools are available for vision impared users?"
+  },
+  {
+    "id": "11",
+    "user_intent": "Access professional standards and training for assistive technology practitioners",
+    "tool_name": "ARATA website",
+    "URL": "https://www.arata.org.au/ ",
+    "in_database": "no",
+    "text_to_embed": "User Intent: Access professional standards and training for assistive technology practitioners\nTool Name: ARATA website\nDescription: ARATA is one the contributing organisations to Standards Australia's development of the ME-067 standard for assistive technologies.\nCommon User Queries:\nI want to provide training on assistive technologies\nHow do I choose the right assistive tool?\nI want to make my website compatible with assistive technology"
+  },
+  {
+    "id": "12",
+    "user_intent": "Search, compare, and source specific assistive equipment",
+    "tool_name": "Australia's National Equipment Database (NED)",
+    "URL": "https://askned.com.au/catalog",
+    "in_database": "no",
+    "text_to_embed": "User Intent: Search, compare, and source specific assistive equipment\nTool Name: Australia's National Equipment Database (NED)\nDescription: A comprehensive database of nationwide available assistive technologies including models and prices.\nCommon User Queries:\nWhat assistive technologies are available for people with hearing disability?\nWhat is the price range of mobility assistive tools?\nCan you help me to compare prices and models of available screen readers?"
+  },
+  {
+    "id": "13",
+    "user_intent": "Audit physical premises and facilities",
+    "tool_name": "UNICEF Toolkit on Accessibility - Section G: Accessibility Checklists",
+    "URL": "https://accessibilitytoolkit.unicef.org/reports/section-g-accessibility-checklists",
+    "in_database": "yes",
+    "text_to_embed": "User Intent: Audit physical premises and facilities\nTool Name: UNICEF Toolkit on Accessibility - Section G: Accessibility Checklists\nDescription: Section G of the UNICEF Toolkit on Accessibility provides a series of practical checklists to guide accessibility assessments of programme-related buildings or UNICEF premises. It covers areas like vehicles, parking, pathways, ramps, reception areas, toilets, and more, based on universal design principles.\nCommon User Queries:\nHow do I check if my building is accessible?\nWhat are the accessibility requirements for ramps and doorways?\nI need a checklist for accessible parking and reception areas"
+  },
+  {
+    "id": "14",
+    "user_intent": "Assess school infrastructure",
+    "tool_name": "Making Schools Accessible to Children with Disabilities",
+    "URL": "https://www.unicef.org/india/reports/making-schools-accessible-children-disabilities",
+    "in_database": "yes",
+    "text_to_embed": "User Intent: Assess school infrastructure\nTool Name: Making Schools Accessible to Children with Disabilities\nDescription: A guidebook by UNICEF providing technical solutions and practical checklists to assess and improve school infrastructure accessibility for children with disabilities. It covers entry/exits, ramps, stairs, corridors, toilets, and more.\nCommon User Queries:\nI want to check if my school is accessible\nI need guidelines for accessible toilets and drinking water in schools\nWhat are the standards for school ramps and stairs"
+  },
+  {
+    "id": "15",
+    "user_intent": "Train staff on end-to-end event accessibility",
+    "tool_name": "Disability Inclusion Training - Module 3: Event Accessibility",
+    "URL": "https://mekonginclusive.com/",
+    "in_database": "yes",
+    "text_to_embed": "User Intent: Train staff on end-to-end event accessibility\nTool Name: Disability Inclusion Training - Module 3: Event Accessibility\nDescription: A self-learning module by Mekong Inclusive Ventures and Impact Hub Asia Pacific. It provides comprehensive guidance on planning accessible in-person, virtual, and hybrid events, including checklists, audit items, and visual design standards (fonts, color contrast).\nCommon User Queries:\nHow do I check if my event venue is accessible?\nWhat are the best fonts and colors for accessible presentations?\nHow can I make my virtual meetings more inclusive?"
+  },
+  {
+    "id": "16",
+    "user_intent": "Create accessible office documents and multimedia",
+    "tool_name": "CBM Digital Accessibility Toolkit",
+    "URL": "https://resourcecentre.savethechildren.net/pdf/CBM-Digital-Accessibility-Toolkit.pdf",
+    "in_database": "yes",
+    "text_to_embed": "User Intent: Create accessible office documents and multimedia\nTool Name: CBM Digital Accessibility Toolkit\nDescription: A toolkit by CBM providing practical guidance and tools for creating accessible digital content. It covers document accessibility (Word, Excel, PowerPoint, PDF), multimedia (video, audio), and visual design (fonts, color contrast), based on universal design principles and international standards.\nCommon User Queries:\nHow can I check if my digital content is inclusive?\nWhat are the accessibility standards for fonts and colors in digital content?\nHow do I make my Word and Excel documents accessible?"
+  },
+  {
+    "id": "17",
+    "user_intent": "Host inclusive virtual meetings",
+    "tool_name": "IncludeAbility Guide: Hosting accessible and inclusive online meetings and events",
+    "URL": "https://humanrights.gov.au/our-work/disability-rights/hosting-accessible-inclusive-online-meetings-events",
+    "in_database": "yes",
+    "text_to_embed": "User Intent: Host inclusive virtual meetings\nTool Name: IncludeAbility Guide: Hosting accessible and inclusive online meetings and events\nDescription: A guide by the Australian Human Rights Commission on hosting accessible and inclusive online meetings and events. It covers preparation (platform selection, registration), delivery (captioning, Auslan interpreters, managing audio/visuals), and post-event actions.\nCommon User Queries:\nHow do I host an accessible Zoom or Teams meeting?\nWhat are the best practices for online event registration?\nHow can I support participants with disabilities in online events?"
+  }
+]
