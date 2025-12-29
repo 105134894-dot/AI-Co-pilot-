@@ -2,6 +2,7 @@ from fileinput import filename
 import os
 import time
 import io
+import json
 from typing import List, Optional
 from fastapi import FastAPI, HTTPException, UploadFile, File
 from pydantic import BaseModel
@@ -21,9 +22,10 @@ load_dotenv()
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 PINECONE_API_KEY = os.getenv("PINECONE_API_KEY")
 PINECONE_INDEX_NAME = os.getenv("PINECONE_INDEX_NAME")
+KNOWLEDGE_MAP_INDEX_NAME = os.getenv("KNOWLEDGE_MAP_INDEX_NAME")
 
-if not all([GEMINI_API_KEY, PINECONE_API_KEY, PINECONE_INDEX_NAME]):
-    raise ValueError("❌ Missing API keys in .env file. Please check GEMINI_API_KEY, PINECONE_API_KEY, and PINECONE_INDEX_NAME.")
+if not all([GEMINI_API_KEY, PINECONE_API_KEY, PINECONE_INDEX_NAME, KNOWLEDGE_MAP_INDEX_NAME]):
+    raise ValueError("❌ Missing required API keys in .env")
 
 # Configure Gemini with new API
 client = genai.Client(api_key=GEMINI_API_KEY)
@@ -32,23 +34,24 @@ client = genai.Client(api_key=GEMINI_API_KEY)
 CHAT_MODEL_NAME = 'gemini-2.5-flash-lite'
 EMBED_MODEL_NAME = 'text-embedding-004'
 
-# Configure Pinecone
+# Pinecone Configuration
 pc = Pinecone(api_key=PINECONE_API_KEY)
 
-# Auto-create index if it doesn't exist
+# Main Knowledge Base Index
 if PINECONE_INDEX_NAME not in pc.list_indexes().names():
-    print(f"⚙️ Index '{PINECONE_INDEX_NAME}' not found. Creating it...")
+    print(f"⚙️ Creating Knowledge Base index '{PINECONE_INDEX_NAME}'")
     pc.create_index(
         name=PINECONE_INDEX_NAME,
-        dimension=768, 
+        dimension=768,
         metric="cosine",
         spec=ServerlessSpec(cloud="aws", region="us-east-1")
     )
-    # Wait for index to be ready
-    while not pc.describe_index(PINECONE_INDEX_NAME).status['ready']:
-        time.sleep(1)
+index_kb = pc.Index(PINECONE_INDEX_NAME)
 
-index = pc.Index(PINECONE_INDEX_NAME)
+# Knowledge Map Index
+if KNOWLEDGE_MAP_INDEX_NAME not in pc.list_indexes().names():
+    print(f"⚠️ Knowledge Map index '{KNOWLEDGE_MAP_INDEX_NAME}' not found.")
+index_km = pc.Index(KNOWLEDGE_MAP_INDEX_NAME)
 
 # Ingestion constants
 CHUNK_SIZE = 1000
@@ -220,6 +223,89 @@ app.add_middleware(
 def home():
     return {"status": "online", "message": "MIV AI Co-Pilot Brain is running 🧠"}
 
+# -----------------------
+# Ingest Endpoint
+# -----------------------
+@app.post("/ingest", response_model=IngestResponse)
+async def ingest_endpoint(file: UploadFile = File(...), target_index: str = "kb"):
+    """
+    Upload and ingest a PDF, DOCX, or JSON file into the vector database.
+    - PDF/DOCX: chunk paragraphs as before
+    - JSON: expect list of {topic, content} objects for Knowledge Map
+    """
+    start_time = time.time()
+    filename = file.filename
+    
+    # Determine target index
+    if target_index == "km":
+        index_target = pc.Index(KNOWLEDGE_MAP_INDEX_NAME)
+    else:
+        index_target = pc.Index(PINECONE_INDEX_NAME)
+
+    # Validate file type
+    if not filename.lower().endswith(('.pdf', '.docx', '.json')):
+        raise HTTPException(status_code=400, detail="Invalid file type. Only PDF, DOCX, or JSON supported.")
+
+    try:
+        # Remove existing vectors for this file
+        try:
+            index_target.delete(filter={"source": filename})
+        except Exception as e:
+            print(f"⚠️ Could not delete existing vectors: {e}")
+        
+        # Read file bytes
+        file_bytes = await file.read()
+        paragraph_chunks = []
+
+        if filename.lower().endswith('.pdf'):
+            paragraphs = extract_pdf_paragraphs_with_headings(file_bytes)
+            paragraph_chunks = merge_paragraphs_into_chunks(paragraphs)
+        elif filename.lower().endswith('.docx'):
+            paragraphs = extract_docx_paragraphs_with_headings(file_bytes)
+            paragraph_chunks = merge_paragraphs_into_chunks(paragraphs)
+        elif filename.lower().endswith('.json'):
+            # JSON ingestion for Knowledge Map
+            km_data = json.loads(file_bytes)
+            for i, entry in enumerate(km_data):
+                topic = entry.get("topic", f"topic-{i}")
+                content = entry.get("content", "")
+                paragraph_chunks.append({"text": content, "heading": topic, "paragraph_index": i})
+
+        vectors_to_upsert = []
+        for chunk_info in paragraph_chunks:
+            text = chunk_info['text']
+            heading = chunk_info['heading']
+            para_idx = chunk_info['paragraph_index']
+
+            # Generate embedding
+            embedding_response = client.models.embed_content(model=EMBED_MODEL_NAME, contents=text)
+            vector = embedding_response.embeddings[0].values
+            chunk_id = f"{filename}-para-{para_idx}"
+
+            vectors_to_upsert.append((chunk_id, vector, {"text": text, "source": filename, "heading": heading}))
+
+            if len(vectors_to_upsert) >= BATCH_SIZE:
+                index_target.upsert(vectors=vectors_to_upsert)
+                vectors_to_upsert = []
+
+        if vectors_to_upsert:
+            index_target.upsert(vectors=vectors_to_upsert)
+
+        elapsed = time.time() - start_time
+        return IngestResponse(
+            success=True,
+            message=f"Successfully ingested {filename}",
+            chunks_added=len(paragraph_chunks),
+            filename=filename
+        )
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# -----------------------
+# Chat Endpoint (Dual Index)
+# -----------------------
 @app.post("/chat", response_model=ChatResponse)
 async def chat_endpoint(req: ChatRequest):
     start_time = time.time()
@@ -228,7 +314,15 @@ async def chat_endpoint(req: ChatRequest):
     question = req.query.strip()
     print(f"\n🔥 Received Question: {question}")
 
-    # 2️⃣ Detect formatting instructions
+    # 2️⃣ Handle greetings first
+    greetings = ['hi', 'hello', 'hey', 'good morning', 'good afternoon']
+    if question.lower() in greetings:
+        return {
+            "response": "Hello! 👋 I'm your AI Co-Pilot for accessibility. I can help you find tools, understand guidelines, or improve your content. What would you like to know?",
+            "sources": []
+        }
+
+    # 3️⃣ Detect formatting instructions
     formatted_question = question  # default
     q_lower = question.lower()
 
@@ -243,59 +337,79 @@ async def chat_endpoint(req: ChatRequest):
             " (Answer as numbered steps: each step on a separate line starting with its number, no extra commentary)"
         )
 
-    # 3️⃣ Handle greetings
-    greetings = ['hi', 'hello', 'hey', 'good morning', 'good afternoon']
-    if question.lower() in greetings:
-        return {
-            "response": "Hello! 👋 I'm your AI Co-Pilot for accessibility. I can help you find tools, understand guidelines, or improve your content. What would you like to know?",
-            "sources": []
-        }
-
     try:
-        # --- EMBEDDING with new API ---
+        # --- EMBED USER QUESTION ---
         embedding_response = client.models.embed_content(
             model=EMBED_MODEL_NAME,
             contents=question
         )
-        # Access the embedding from the response
         query_embedding = embedding_response.embeddings[0].values
 
-        # --- SEARCH PINECONE ---
-        search_results = index.query(
+        # --- STEP 1: QUERY KNOWLEDGE MAP ---
+        km_results = index_km.query(
             vector=query_embedding,
+            top_k=1,
+            include_metadata=True
+        )
+
+        if km_results['matches']:
+            km_text = km_results['matches'][0]['metadata'].get('text', '')
+            km_topic = km_text
+        print("🔹 KM Retrieved:")
+        for match in km_results['matches']:
+            metadata = match.get('metadata', {})
+            print("  - Heading:", metadata.get('heading'))
+            print("  - Source:", metadata.get('source'))
+            print("  - Text preview:", metadata.get('text')[:150])
+        else:
+            km_text = ""
+            km_topic = question
+
+        # --- STEP 2: QUERY KNOWLEDGE BASE using KM topic ---
+        kb_embedding_response = client.models.embed_content(
+            model=EMBED_MODEL_NAME,
+            contents=km_topic
+        )
+        kb_query_embedding = kb_embedding_response.embeddings[0].values
+
+        kb_results = index_kb.query(
+            vector=kb_query_embedding,
             top_k=req.top_k,
             include_metadata=True
         )
 
-        # Debug: show retrieved chunks
-        print("Retrieved chunks:")
-        for match in search_results['matches']:
+        print("🔹 KB Retrieved:")
+        for match in kb_results['matches']:
             metadata = match.get('metadata', {})
-            snippet = metadata.get('text', '')[:100]
-            source_name = metadata.get('source', 'MIV Database')
-            print("-", source_name, "|", snippet)
-
-        # --- Build context ---
+            print("  - Heading:", metadata.get('heading'))
+            print("  - Source:", metadata.get('source'))
+            print("  - Score:", match['score'])
+            print("  - Text preview:", metadata.get('text')[:150])  
+            
+        # --- BUILD CONTEXT ---
         retrieved_chunks = []
         context_text_list = []
-        for match in search_results['matches']:
+
+        # Add Knowledge Map snippet first
+        if km_text:
+            context_text_list.append(f"[Source: Knowledge Map]\n{km_text}")
+            retrieved_chunks.append({"text": km_text[:200]+"...", "source": "Knowledge Map", "score": 1.0})
+
+        # Add Knowledge Base results
+        for match in kb_results['matches']:
             metadata = match.get('metadata', {})
             text_content = metadata.get('text', '')
-            source_name = metadata.get('source', 'MIV Database')
+            source_name = metadata.get('source', 'Knowledge Base')
 
-            retrieved_chunks.append({
-                "text": text_content[:200] + "...",
-                "source": source_name,
-                "score": match['score']
-            })
             context_text_list.append(f"[Source: {source_name}]\n{text_content}")
+            retrieved_chunks.append({"text": text_content[:200]+"...", "source": source_name, "score": match['score']})
 
         full_context = "\n\n---\n\n".join(context_text_list)
 
-        # --- GENERATE AI RESPONSE with new API ---
+        # --- GENERATE AI RESPONSE ---
         prompt = f"""{SYSTEM_PROMPT}
 
-CONTEXT FROM KNOWLEDGE BASE:
+CONTEXT FROM KNOWLEDGE MAP + KNOWLEDGE BASE:
 {full_context}
 
 USER QUESTION:
@@ -309,161 +423,30 @@ USER QUESTION:
         elapsed = time.time() - start_time
         print(f"✅ Reply generated in {elapsed:.2f}s")
 
-        return {
-            "response": response.text,
-            "sources": retrieved_chunks
-        }
+        return {"response": response.text, "sources": retrieved_chunks}
 
     except Exception as e:
         print(f"❌ Error: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.post("/ingest", response_model=IngestResponse)
-async def ingest_endpoint(file: UploadFile = File(...)):
-    """
-    Upload and ingest a PDF or DOCX file into the vector database.
-    Chunks the document, generates embeddings, and stores in Pinecone.
-    """
-    start_time = time.time()
-    filename = file.filename
-    
-    print(f"\n📄 Ingesting file: {filename}")
-    
-    # Validate file type
-    if not filename.lower().endswith(('.pdf', '.docx')):
-        raise HTTPException(
-            status_code=400, 
-            detail="Invalid file type. Only PDF and DOCX files are supported."
-        )
-    
-    # -----------------------------------------------------------
-    # FIX: Wrap delete in try/except to handle "Namespace not found"
-    # -----------------------------------------------------------
-    print(f"♻️ Removing existing vectors for {filename}")
-    try:
-        index.delete(filter={"source": filename})
-    except Exception as e:
-        # If it fails (e.g. namespace not found on first run), just log and continue
-        print(f"⚠️ Note: Could not delete existing vectors (likely first run or empty index). Details: {e}")
-
-    try:
-        # Read file content into memory
-        file_bytes = await file.read()
-
-        # Extract paragraphs with headings
-        if filename.lower().endswith('.pdf'):
-            paragraphs = extract_pdf_paragraphs_with_headings(file_bytes)
-        else:
-            paragraphs = extract_docx_paragraphs_with_headings(file_bytes)
-
-        # Merge paragraphs into chunks
-        paragraph_chunks = merge_paragraphs_into_chunks(paragraphs)
-
-        # Validate extraction
-        if not paragraph_chunks:
-            raise HTTPException(
-                status_code=400,
-                detail="No paragraph extracted from the document."
-            )
-
-        print(f"📝 Extracted {len(paragraph_chunks)} paragraph chunks from {filename}")
-
-        vectors_to_upsert = []
-        start_time = time.time()
-
-        for i, chunk_info in enumerate(paragraph_chunks):
-            chunk_text = chunk_info['text']
-            heading = chunk_info['heading']
-            para_idx = chunk_info['paragraph_index']
-
-            # Generate embedding with new API
-            embedding_response = client.models.embed_content(
-                model=EMBED_MODEL_NAME,
-                contents=chunk_text
-            )
-            # Access the embedding from the response
-            vector = embedding_response.embeddings[0].values
-
-            # Unique ID
-            chunk_id = f"{filename}-para-{para_idx}"
-
-            # Upsert with heading metadata
-            vectors_to_upsert.append((
-                chunk_id,
-                vector,
-                {
-                    "text": chunk_text,
-                    "source": filename,
-                    "paragraph_index": para_idx,
-                    "heading": heading
-                }
-            ))
-
-            # Upsert in batches
-            if len(vectors_to_upsert) >= BATCH_SIZE:
-                index.upsert(vectors=vectors_to_upsert)
-                print(f"✅ Uploaded batch of {len(vectors_to_upsert)} vectors")
-                vectors_to_upsert = []
-                time.sleep(0.5)
-
-        # Upsert remaining vectors
-        if vectors_to_upsert:
-            index.upsert(vectors=vectors_to_upsert)
-            print(f"✅ Uploaded final batch of {len(vectors_to_upsert)} vectors")
-
-        elapsed = time.time() - start_time
-        print(f"🎉 Ingestion complete in {elapsed:.2f}s - {len(paragraph_chunks)} chunks added")
-
-        return IngestResponse(
-            success=True,
-            message=f"Successfully ingested {filename}",
-            chunks_added=len(paragraph_chunks),
-            filename=filename
-        )
-
-    except HTTPException:
-        raise
-    except Exception as e:
-        print(f"❌ Ingestion error: {str(e)}")
-        raise HTTPException(
-            status_code=500,
-            detail=f"An error occurred during ingestion: {str(e)}"
-        )
-    
+# -----------------------
+# List Documents Endpoint
+# -----------------------
 @app.get("/list-documents")
 async def list_documents():
-    """
-    Returns a list of unique document filenames currently stored in Pinecone.
-    Uses a dummy vector query to sample the index and extract unique sources.
-    """
     try:
-        # Query with a zero-vector to retrieve a sample of vectors
-        # Increase top_k if you expect more than 1000 chunks total
-        results = index.query(
-            vector=[0.0] * 768,  # Match your embedding dimension
-            top_k=1000,  # Adjust based on your expected total chunks
+        results = index_kb.query(
+            vector=[0.0] * 768,
+            top_k=1000,
             include_metadata=True
         )
-        
-        # Extract unique source filenames
         sources = set()
         for match in results.get('matches', []):
             metadata = match.get('metadata', {})
             if 'source' in metadata:
                 sources.add(metadata['source'])
-        
-        # Convert to list with basic info
         documents = [{"filename": src} for src in sorted(sources)]
-        
-        return {
-            "success": True,
-            "documents": documents,
-            "total_chunks_sampled": len(results.get('matches', []))
-        }
-        
+        return {"success": True, "documents": documents, "total_chunks_sampled": len(results.get('matches', []))}
     except Exception as e:
         print(f"❌ Error listing documents: {str(e)}")
-        raise HTTPException(
-            status_code=500, 
-            detail=f"Failed to list documents: {str(e)}"
-        )
+        raise HTTPException(status_code=500, detail=str(e))
