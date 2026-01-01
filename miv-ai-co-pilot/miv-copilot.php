@@ -53,7 +53,7 @@ function miv_enqueue_copilot_assets()
         'miv-copilot-script',
         'MIV_WIDGET_CONFIG',
         array(
-            'backendUrl'      => 'https://miv-copilot-backend-132087945456.us-east1.run.app', // !Comment out this line to run locally!
+            'backendUrl'      => 'https://miv-copilot-backend-49945271860.us-east1.run.app', // !Comment out this line to run locally!
             //'backendUrl'      => 'http://localhost:8000',                                       // !Comment out this line to use production!
             'storageVersion'  => (string) filemtime($plugin_dir . 'assets/js/miv-widget.js'),
         )

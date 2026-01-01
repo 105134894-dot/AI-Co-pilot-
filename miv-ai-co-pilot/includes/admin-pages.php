@@ -81,7 +81,7 @@ function miv_get_backend_url()
 {
     $url = get_option('miv_backend_url', '');
     // Default to Google cloud URL if no setting is saved
-    if (!$url) $url = 'https://miv-copilot-backend-132087945456.us-east1.run.app';
+    if (!$url) $url = 'https://miv-copilot-backend-49945271860.us-east1.run.app';
     return rtrim($url, '/');
 }
 
