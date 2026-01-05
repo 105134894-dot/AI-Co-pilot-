@@ -13,9 +13,15 @@
     background: transparent;
     cursor: pointer;
     display: inline-block;
+    position: relative;
+    transition: transform 0.2s ease;
 }
 
-/* Helper class from Peter's branch */
+.miv-launcher-btn:hover {
+    transform: scale(1.05);
+}
+
+/* Helper class */
 .miv-hidden {
     display: none !important;
 }
@@ -24,11 +30,43 @@
     display: block;
     width: 320px;
     max-width: 70vw;
-    /* Responsive on small screens */
     height: auto;
+    filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.15));
 }
 
-/* Chat window — Using Peter's Wider Dimensions */
+/* FIX: Add sparkle effect to floating button */
+.miv-launcher-btn::before {
+    content: '✨';
+    position: absolute;
+    top: -8px;
+    right: 20px;
+    font-size: 24px;
+    animation: sparkle 2s infinite;
+    pointer-events: none;
+}
+
+.miv-launcher-btn::after {
+    content: '✨';
+    position: absolute;
+    bottom: 10px;
+    left: 10px;
+    font-size: 20px;
+    animation: sparkle 2s infinite 0.5s;
+    pointer-events: none;
+}
+
+@keyframes sparkle {
+    0%, 100% {
+        opacity: 0;
+        transform: scale(0.8);
+    }
+    50% {
+        opacity: 1;
+        transform: scale(1.2);
+    }
+}
+
+/* Chat window */
 .miv-chat-window {
     --miv-radius: 18px;
     --miv-bg: #5ba085;
@@ -42,10 +80,8 @@
     --miv-font-scale: 1;
 
     width: min(660px, 92vw);
-    /* Updated to 660px from Peter's branch */
     max-height: 80vh;
     display: none;
-    /* hidden by default */
     flex-direction: column;
     border-radius: var(--miv-radius);
     background: var(--miv-bg);
@@ -55,59 +91,70 @@
     font-size: calc(1rem * var(--miv-font-scale));
 }
 
-/* Ensure scaling propagates to all children */
 .miv-chat-window * {
     font-size: inherit !important;
 }
 
-/* visible state */
 .miv-chat-window.miv-chat-window--open {
     display: flex;
 }
 
-/* --- THEMES (From Peter's Branch) --- */
+/* --- THEMES --- */
 
-/* High contrast mode */
+/* FIX: Improved high contrast mode with better text colors */
 .miv-chat-window--high-contrast {
-    --miv-bg: #050505;
+    --miv-bg: #000000;
     --miv-header-text: #ffffff;
     --miv-body-bg: #000000;
     --miv-user-bubble: #ffffff;
-    --miv-assistant-bubble: #000000;
+    --miv-assistant-bubble: #1a1a1a;
     --miv-assistant-text: #ffffff;
-    --miv-input-bg: #111111;
+    --miv-input-bg: #1a1a1a;
+    --miv-border-subtle: rgba(255, 255, 255, 0.3);
     color: #ffffff;
 }
 
-/* Theme 1 — Blue Calm */
+.miv-chat-window--high-contrast .miv-input {
+    color: #ffffff;
+    border-color: rgba(255, 255, 255, 0.3);
+}
+
+/* Theme 1 – Blue Calm */
 .miv-theme-blue {
     --miv-bg: #3b6ea5;
     --miv-header-text: #ffffff;
-    --miv-body-bg: #ffffff;
-    --miv-assistant-bubble: #f1f5fb;
+    --miv-body-bg: #f8fbff;
+    --miv-assistant-bubble: #e8f2ff;
     --miv-assistant-text: #0d3040;
     --miv-user-bubble: #0e5c82;
     --miv-user-text: #ffffff;
     --miv-input-bg: #ffffff;
 }
 
-/* Theme 2 — Deep Navy */
+/* Theme 2 – Deep Navy */
 .miv-theme-navy {
     --miv-bg: #0a1a33;
     --miv-header-text: #ffffff;
     --miv-body-bg: #0f223f;
     --miv-assistant-bubble: #1a2f52;
-    --miv-assistant-text: #ffffff;
+    --miv-assistant-text: #e8f0ff;
     --miv-user-bubble: #2b4a7a;
     --miv-user-text: #ffffff;
     --miv-input-bg: #1a2f52;
+    --miv-border-subtle: rgba(255, 255, 255, 0.15);
+    color: #e8f0ff;
 }
 
-/* Theme 3 — Warm Sepia */
+.miv-theme-navy .miv-input {
+    color: #ffffff;
+    border-color: rgba(255, 255, 255, 0.2);
+}
+
+/* Theme 3 – Warm Sepia */
 .miv-theme-sepia {
     --miv-bg: #7b5e3b;
     --miv-header-text: #ffffff;
-    --miv-body-bg: #f7f2e9;
+    --miv-body-bg: #faf7f2;
     --miv-assistant-bubble: #f0e7d8;
     --miv-assistant-text: #3a2a1a;
     --miv-user-bubble: #8c6b47;
@@ -115,7 +162,7 @@
     --miv-input-bg: #ffffff;
 }
 
-/* Theme 4 — Slate Grey */
+/* Theme 4 – Slate Grey */
 .miv-theme-slate {
     --miv-bg: #4a5568;
     --miv-header-text: #ffffff;
@@ -127,16 +174,23 @@
     --miv-input-bg: #ffffff;
 }
 
-/* Theme 5 — High Contrast Yellow */
+/* Theme 5 – High Contrast Yellow */
 .miv-theme-yellow {
-    --miv-bg: #ffcc00;
-    --miv-header-text: #000000;
+    --miv-bg: #000000;
+    --miv-header-text: #ffcc00;
     --miv-body-bg: #000000;
     --miv-assistant-bubble: #1a1a1a;
-    --miv-assistant-text: #ffffff;
+    --miv-assistant-text: #ffcc00;
     --miv-user-bubble: #ffcc00;
     --miv-user-text: #000000;
-    --miv-input-bg: #111111;
+    --miv-input-bg: #1a1a1a;
+    --miv-border-subtle: rgba(255, 204, 0, 0.3);
+    color: #ffcc00;
+}
+
+.miv-theme-yellow .miv-input {
+    color: #ffcc00;
+    border-color: rgba(255, 204, 0, 0.3);
 }
 
 /* Header */
@@ -148,13 +202,11 @@
     color: var(--miv-header-text);
     position: relative;
     justify-content: space-between;
-    /* Updated from Peter's branch */
 }
 
 .miv-header-left {
     flex-shrink: 0;
     display: flex;
-    /* Updated layout */
     align-items: center;
     gap: 0.5rem;
 }
@@ -172,7 +224,7 @@
     text-align: left;
 }
 
-/* Header actions — back, forward, clear, accessibility, close */
+/* Header actions */
 .miv-header-actions {
     display: flex;
     align-items: center;
@@ -194,31 +246,14 @@
     justify-content: center;
     cursor: pointer;
     font-size: 1rem;
+    transition: background 0.2s ease, transform 0.1s ease;
 }
 
 .miv-header-icon-btn:hover,
 .miv-close-btn:hover,
 .miv-a11y-toggle:hover {
     background: rgba(0, 0, 0, 0.32);
-}
-
-/* Forward button specificity */
-.miv-header-icon-btn-forward {
-    border: none;
-    background: rgba(0, 0, 0, 0.18);
-    color: #ffffff;
-    width: 28px;
-    height: 28px;
-    border-radius: 999px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    font-size: 1rem;
-}
-
-.miv-header-icon-btn-forward:hover {
-    background: rgba(0, 0, 0, 0.32);
+    transform: scale(1.05);
 }
 
 /* Accessibility panel */
@@ -245,39 +280,43 @@
     margin-bottom: 0.35rem;
 }
 
-/* Small icon-style reset button for accessibility panel (From Peter's branch) */
+/* FIX: Reset button styling to match direction of AP toggle */
 #miv-a11y-reset {
-    width: 32px;
-    height: 32px;
-    min-width: 32px;
-    min-height: 32px;
-    border-radius: 8px;
+    width: 28px;
+    height: 28px;
+    min-width: 28px;
+    min-height: 28px;
+    border-radius: 50%;
     border: none;
-    background: rgba(0, 0, 0, 0.18);
-    color: #ffffff;
+    background: rgba(0, 122, 135, 0.15);
+    color: inherit;
     display: inline-flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    font-size: 1rem;
+    font-size: 0.9rem;
     padding: 0;
     margin-left: auto;
-    /* pushes it to the right side */
     transition: background 140ms ease, transform 120ms ease;
 }
 
 #miv-a11y-reset:hover {
-    background: rgba(0, 0, 0, 0.28);
-    transform: translateY(-1px);
+    background: rgba(0, 122, 135, 0.25);
+    transform: scale(1.1);
 }
 
 #miv-a11y-reset:focus {
-    outline: 3px solid rgba(14, 92, 130, 0.18);
+    outline: 2px solid rgba(14, 92, 130, 0.4);
+    outline-offset: 2px;
 }
 
 .miv-chat-window--high-contrast #miv-a11y-reset {
-    background: #222;
+    background: rgba(255, 255, 255, 0.2);
     color: #fff;
+}
+
+.miv-chat-window--high-contrast #miv-a11y-reset:hover {
+    background: rgba(255, 255, 255, 0.3);
 }
 
 .miv-a11y-close {
@@ -286,6 +325,11 @@
     color: inherit;
     cursor: pointer;
     font-size: 1rem;
+    transition: transform 0.1s ease;
+}
+
+.miv-a11y-close:hover {
+    transform: scale(1.1);
 }
 
 .miv-a11y-row {
@@ -307,11 +351,22 @@
     background: #ffffff;
     cursor: pointer;
     font-size: 0.78rem;
+    transition: background 0.2s ease, transform 0.1s ease;
+}
+
+.miv-a11y-btn:hover {
+    background: #f0f0f0;
+    transform: translateY(-1px);
 }
 
 .miv-chat-window--high-contrast .miv-a11y-btn {
-    background: #111111;
+    background: #1a1a1a;
     color: #ffffff;
+    border-color: rgba(255, 255, 255, 0.3);
+}
+
+.miv-chat-window--high-contrast .miv-a11y-btn:hover {
+    background: #2a2a2a;
 }
 
 .miv-a11y-btn--full {
@@ -340,11 +395,17 @@
     cursor: pointer;
     text-align: left;
     color: #0d3040;
+    transition: background 0.2s ease, transform 0.1s ease;
+}
+
+.miv-chip:hover {
+    background: rgba(255, 255, 255, 1);
+    transform: translateY(-1px);
 }
 
 .miv-chat-window--high-contrast .miv-chip {
     background: #ffffff;
-    color: #111111;
+    color: #000000;
 }
 
 .miv-quick-title {
@@ -356,6 +417,12 @@
 
 .miv-chip--secondary {
     background: rgba(255, 255, 255, 0.65);
+    /* FIX: Add extra bottom padding for "Something Else" */
+    margin-bottom: 0.3rem;
+}
+
+.miv-chip--secondary:hover {
+    background: rgba(255, 255, 255, 0.85);
 }
 
 /* Messages area */
@@ -364,6 +431,7 @@
     padding: 0.8rem 1rem;
     flex: 1;
     overflow-y: auto;
+    scroll-behavior: smooth;
 }
 
 /* ChatGPT-like blocks */
@@ -405,24 +473,20 @@
 }
 
 @keyframes miv-bounce {
-
-    0%,
-    80%,
-    100% {
+    0%, 80%, 100% {
         transform: translateY(0);
         opacity: 0.5;
     }
-
     40% {
         transform: translateY(-3px);
         opacity: 1;
     }
 }
 
-/* Input row */
+/* Input row - FIX: Remove padding above input */
 .miv-input-row {
     background: var(--miv-input-bg);
-    padding: 0.55rem 0.9rem 0.7rem;
+    padding: 0.4rem 0.9rem 0.7rem;
     border-top: 1px solid var(--miv-border-subtle);
     display: flex;
     gap: 0.5rem;
@@ -439,6 +503,22 @@
     min-height: 40px;
     line-height: 1.2;
     font-size: inherit;
+    transition: border-color 0.2s ease;
+}
+
+.miv-input:focus {
+    outline: none;
+    border-color: #0e5c82;
+}
+
+.miv-input::placeholder {
+    color: rgba(0, 0, 0, 0.4);
+}
+
+.miv-chat-window--high-contrast .miv-input::placeholder,
+.miv-theme-navy .miv-input::placeholder,
+.miv-theme-yellow .miv-input::placeholder {
+    color: rgba(255, 255, 255, 0.5);
 }
 
 .miv-send-btn {
@@ -450,6 +530,12 @@
     font-size: inherit;
     cursor: pointer;
     min-height: 40px;
+    transition: background 0.2s ease, transform 0.1s ease;
+}
+
+.miv-send-btn:hover {
+    background: #0a4a68;
+    transform: translateY(-1px);
 }
 
 /* Screen-reader only text */
@@ -505,9 +591,7 @@
     margin: 0.2rem 0;
 }
 
-/* --- MERGE CRITICAL: MARKDOWN STYLING (RESTORED FROM MAIN) --- */
-/* This was missing in Peter's branch and handles the marked.js output */
-
+/* Markdown Styling */
 .miv-message-parsed p {
     margin-bottom: 10px;
 }
@@ -567,6 +651,12 @@
     color: #0052a3;
 }
 
+.miv-chat-window--high-contrast .miv-message-parsed a,
+.miv-theme-navy .miv-message-parsed a,
+.miv-theme-yellow .miv-message-parsed a {
+    color: #66b3ff;
+}
+
 .miv-message-parsed code {
     background: rgba(0, 0, 0, 0.1);
     padding: 2px 5px;
@@ -575,12 +665,22 @@
     font-size: 0.9em;
 }
 
+.miv-chat-window--high-contrast .miv-message-parsed code,
+.miv-theme-navy .miv-message-parsed code {
+    background: rgba(255, 255, 255, 0.1);
+}
+
 .miv-message-parsed pre {
     background: rgba(0, 0, 0, 0.05);
     padding: 12px;
     border-radius: 6px;
     overflow-x: auto;
     margin: 10px 0;
+}
+
+.miv-chat-window--high-contrast .miv-message-parsed pre,
+.miv-theme-navy .miv-message-parsed pre {
+    background: rgba(255, 255, 255, 0.05);
 }
 
 .miv-message-parsed pre code {

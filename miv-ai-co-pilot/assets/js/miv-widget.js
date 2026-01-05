@@ -16,8 +16,8 @@
     // Theme / contrast state (From Peter's Branch)
     const THEME_KEY = 'mivTheme_' + storageVersion;
     const contrastThemes = [
-        "default",   // original/base
-        "high",      // existing black/white high contrast
+        "default",
+        "high",
         "blue",
         "navy",
         "sepia",
@@ -29,7 +29,6 @@
         currentThemeIndex = 0;
     }
 
-    // Legacy highContrast flag kept for backward compatibility but now derived from theme
     let highContrast = false;
     let isLoading = false;
 
@@ -45,6 +44,7 @@
        Temp UI tracking
     ----------------------------- */
     let welcomeShown = false;
+    let hasAskedQuestion = false; // NEW: Track if user has asked any question
 
     /* -----------------------------
        Constants
@@ -123,18 +123,17 @@
     const form = document.getElementById("miv-form");
     const input = document.getElementById("miv-user-input");
 
-    // Navigation buttons (From Peter's Branch)
+      // Navigation buttons (From Peter's Branch)
     const backBtn = document.getElementById("miv-back-btn");
     const forwardBtn = document.getElementById("miv-forward-btn");
     const clearBtn = document.getElementById("miv-clear-chat-btn");
 
     /* -----------------------------
-       Markdown parser using marked.js library (RESTORED FROM MAIN)
+       Markdown parser using marked.js library
     ----------------------------- */
     function parseMarkdown(text) {
         if (!text) return '';
 
-        // Check if marked library is loaded
         if (typeof marked !== 'undefined') {
             try {
                 return marked.parse(text);
@@ -144,7 +143,6 @@
             }
         }
 
-        // Fallback if marked.js not loaded
         return text.replace(/\n/g, '<br>');
     }
 
@@ -211,6 +209,7 @@
 
         const hasUserMessage = history.some(m => m.role === 'user');
         if (hasUserMessage) {
+            hasAskedQuestion = true;
             quickWrap.style.display = "none";
         } else {
             quickWrap.style.display = "flex";
@@ -220,7 +219,7 @@
     }
 
     /* -----------------------------
-       Navigation helpers (From Peter's Branch)
+       Navigation helpers  (From Peter's Branch)
     ----------------------------- */
 
     function statesEqual(a, b) {
@@ -283,11 +282,12 @@
                 `Got it — ${INTENT_CATEGORIES.find(c => c.key === intent).label}. Pick a quick question or type your own.`,
                 { skipSave: true, isTemp: true }
             );
-            quickWrap.style.display = "flex";
+            // Only show if user hasn't asked a question yet
+            quickWrap.style.display = hasAskedQuestion ? "none" : "flex";
         } else {
             renderIntentButtons();
             addMessage("assistant", WELCOME_MESSAGE, { skipSave: true, isTemp: true });
-            quickWrap.style.display = "flex";
+            quickWrap.style.display = hasAskedQuestion ? "none" : "flex";
         }
 
         updateNavigationButtons();
@@ -362,6 +362,7 @@
                 navigateTo(newState);
                 updateNavigationButtons();
 
+                hasAskedQuestion = true; // Mark that user has asked a question
                 quickWrap.style.display = "none";
                 sendMessage(q, { skipNavigate: true });
             });
@@ -382,7 +383,7 @@
     }
 
     function ensureFreshStartUI() {
-        quickWrap.style.display = "flex";
+        quickWrap.style.display = hasAskedQuestion ? "none" : "flex";
         renderIntentButtons();
         if (!welcomeShown) {
             addMessage("assistant", WELCOME_MESSAGE, { skipSave: true, isTemp: true });
@@ -392,7 +393,7 @@
 
     /* -----------------------------
        Rendering helpers
-       (MERGED: Uses Peter's temp logic + Main's marked.js parser)
+        (MERGED: Uses Peter's temp logic + Main's marked.js parser)
     ----------------------------- */
     function addMessage(role, text, opts) {
         const options = opts || {};
@@ -406,6 +407,7 @@
         if (!options.skipSave) pushToHistory(role, text);
 
         if (role === 'user') {
+            hasAskedQuestion = true;
             quickWrap.style.display = "none";
         }
 
@@ -421,21 +423,28 @@
             wrapper.setAttribute('aria-live', 'assertive');
         }
 
-        /* --- MERGE POINT: Use Main Branch's Marked.js Logic --- */
+         /* --- MERGE POINT: Use Main Branch's Marked.js Logic --- */
         if (role === "assistant") {
             const contentDiv = document.createElement("div");
             contentDiv.className = "miv-message-parsed";
-            contentDiv.innerHTML = parseMarkdown(text); // Using main's parser
+            contentDiv.innerHTML = parseMarkdown(text);
             wrapper.appendChild(contentDiv);
         } else {
-            // User messages - simple text
             const p = document.createElement("p");
             p.textContent = text;
             wrapper.appendChild(p);
         }
 
         messagesEl.appendChild(wrapper);
-        messagesEl.scrollTop = messagesEl.scrollHeight;
+        
+        // FIX: Scroll to show user's question at top instead of jumping to bottom
+        if (role === "user") {
+            // Scroll to show the user's message
+            wrapper.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        } else {
+            // For assistant messages, scroll to bottom to show full response
+            messagesEl.scrollTop = messagesEl.scrollHeight;
+        }
     }
 
     function addTypingIndicator() {
@@ -464,11 +473,9 @@
         localStorage.setItem('mivFontScale_' + storageVersion, fontScale);
     }
 
-    // Apply theme based on currentThemeIndex (From Peter's Branch)
     function applyContrast() {
         const theme = contrastThemes[currentThemeIndex];
 
-        // Remove all theme-related classes
         chatWindow.classList.remove(
             "miv-chat-window--high-contrast",
             "miv-theme-blue",
@@ -481,7 +488,7 @@
         highContrast = false;
 
         if (theme === "default") {
-            // base colours, nothing extra to add
+            // base colours
         } else if (theme === "high") {
             chatWindow.classList.add("miv-chat-window--high-contrast");
             highContrast = true;
@@ -489,22 +496,24 @@
             chatWindow.classList.add(`miv-theme-${theme}`);
         }
 
-        // aria + storage
         contrastToggle.setAttribute("aria-pressed", String(highContrast));
         localStorage.setItem('mivHighContrast_' + storageVersion, String(highContrast));
         localStorage.setItem(THEME_KEY, String(currentThemeIndex));
     }
 
-    /* Reset Accessibility Settings */
+    /* Reset Accessibility Settings - FIX: Prevent closing panel */
     if (resetA11yBtn) {
-        resetA11yBtn.addEventListener("click", () => {
+        resetA11yBtn.addEventListener("click", (e) => {
+            e.preventDefault();
+            e.stopPropagation(); // FIX: Stop event from bubbling up
+            
             fontScale = 1;
             applyFontScale();
 
             currentThemeIndex = 0;
             applyContrast();
 
-            a11yPanel.setAttribute("hidden", "true");
+            // Don't close the panel - let user see the changes
         });
     }
 
@@ -518,6 +527,7 @@
         futureStack = [];
         currentState = { intent: null, message: null };
         welcomeShown = false;
+        hasAskedQuestion = false; // Reset question tracking
         ensureFreshStartUI();
     });
 
@@ -550,7 +560,6 @@
         launcherBtn.style.display = "";
     }
 
-    // Close button
     closeBtn.addEventListener("click", (e) => {
         e.preventDefault();
         e.stopPropagation();
@@ -576,7 +585,7 @@
             });
             const data = await res.json();
             removeTypingIndicator();
-            addMessage("assistant", (data && data.response) || "I couldn’t generate a response just now.");
+            addMessage("assistant", (data && data.response) || "I couldn't generate a response just now.");
         } catch (err) {
             console.error(err);
             removeTypingIndicator();
@@ -646,7 +655,7 @@
         renderState(prevState);
 
         if (!currentState.intent && !currentState.message) {
-            quickWrap.style.display = "flex";
+            quickWrap.style.display = hasAskedQuestion ? "none" : "flex";
         }
 
         updateNavigationButtons();
