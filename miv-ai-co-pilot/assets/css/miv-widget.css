@@ -72,8 +72,8 @@
     --miv-bg: #5ba085;
     --miv-header-text: #ffffff;
     --miv-body-bg: #fdfdfd;
-    --miv-user-bubble: #ffffff;
-    --miv-assistant-bubble: #fdfdfd;
+    --miv-user-bubble: #18719E;
+    --miv-assistant-bubble: #f2f2f2;
     --miv-assistant-text: #0d3040;
     --miv-input-bg: #ffffff;
     --miv-border-subtle: rgba(0, 0, 0, 0.08);
@@ -107,6 +107,7 @@
     --miv-header-text: #ffffff;
     --miv-body-bg: #000000;
     --miv-user-bubble: #ffffff;
+    --miv-user-text: #000000;
     --miv-assistant-bubble: #1a1a1a;
     --miv-assistant-text: #ffffff;
     --miv-input-bg: #1a1a1a;
@@ -136,8 +137,8 @@
     --miv-bg: #0a1a33;
     --miv-header-text: #ffffff;
     --miv-body-bg: #0f223f;
-    --miv-assistant-bubble: #1a2f52;
-    --miv-assistant-text: #e8f0ff;
+    --miv-assistant-bubble: #F2F2F2;
+    --miv-assistant-text: #0a1a33;
     --miv-user-bubble: #2b4a7a;
     --miv-user-text: #ffffff;
     --miv-input-bg: #1a2f52;
@@ -321,11 +322,16 @@
 
 .miv-a11y-close {
     border: none;
-    background: transparent;
+    background: rgba(0, 0, 0, 0.18);
     color: inherit;
+    width: 28px;
+    height: 28px;
+    border-radius: 999px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     cursor: pointer;
     font-size: 1rem;
-    transition: transform 0.1s ease;
 }
 
 .miv-a11y-close:hover {
@@ -432,6 +438,8 @@
     flex: 1;
     overflow-y: auto;
     scroll-behavior: smooth;
+    display: flex;
+    flex-direction: column;
 }
 
 /* ChatGPT-like blocks */
@@ -444,10 +452,23 @@
 
 .miv-message--assistant {
     color: var(--miv-assistant-text);
+    align-self: flex-start;
+    background: var(--miv-assistant-bubble);
+    color: var(--miv-assistant-text);
+    padding: 0.55rem 0.75rem;
+    border-radius: 14px 14px 14px 4px;
+    max-width: 100%;
 }
 
 .miv-message--user {
     font-weight: 500;
+    align-self: flex-end;
+    background: var(--miv-user-bubble);
+    color: var(--miv-user-text, #ffffff);
+    padding: 0.55rem 0.75rem;
+    border-radius: 14px 14px 4px 14px; /* chat bubble feel */
+    max-width: 75%;
+    text-align: left;
 }
 
 /* Typing indicator */
