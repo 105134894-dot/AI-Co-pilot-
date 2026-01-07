@@ -103,7 +103,7 @@
 
 /* FIX: Improved high contrast mode with better text colors */
 .miv-chat-window--high-contrast {
-    --miv-bg: #000000;
+    --miv-bg: #1A1A1A;
     --miv-header-text: #ffffff;
     --miv-body-bg: #000000;
     --miv-user-bubble: #ffffff;
@@ -457,7 +457,7 @@
     color: var(--miv-assistant-text);
     padding: 0.55rem 0.75rem;
     border-radius: 14px 14px 14px 4px;
-    max-width: 100%;
+    max-width: 95%;
 }
 
 .miv-message--user {
