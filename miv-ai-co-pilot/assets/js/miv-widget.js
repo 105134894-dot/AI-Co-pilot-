@@ -2,11 +2,15 @@
     const cfg = window.MIV_WIDGET_CONFIG || {};
     const backendUrl = cfg.backendUrl;
     const storageVersion = String(cfg.storageVersion || "v1");
+    const systemPrompt = cfg.systemPrompt || ""; // Get system prompt from config
 
     if (!backendUrl) {
         console.error("MIV backendUrl not provided");
         return;
     }
+
+    // Log system prompt for debugging
+    console.log("📋 System Prompt loaded:", systemPrompt.substring(0, 100) + "...");
 
     /* -----------------------------
        Persistent settings
@@ -123,7 +127,7 @@
     const form = document.getElementById("miv-form");
     const input = document.getElementById("miv-user-input");
 
-      // Navigation buttons (From Peter's Branch)
+    // Navigation buttons (From Peter's Branch)
     const backBtn = document.getElementById("miv-back-btn");
     const forwardBtn = document.getElementById("miv-forward-btn");
     const clearBtn = document.getElementById("miv-clear-chat-btn");
@@ -279,7 +283,7 @@
             renderQuickQuestions(PROMPTS_BY_INTENT[intent] || QUICK_QUESTIONS);
             addMessage(
                 "assistant",
-                `Got it — ${INTENT_CATEGORIES.find(c => c.key === intent).label}. Pick a quick question or type your own.`,
+                `Got it – ${INTENT_CATEGORIES.find(c => c.key === intent).label}. Pick a quick question or type your own.`,
                 { skipSave: true, isTemp: true }
             );
             // Only show if user hasn't asked a question yet
@@ -423,7 +427,7 @@
             wrapper.setAttribute('aria-live', 'assertive');
         }
 
-         /* --- MERGE POINT: Use Main Branch's Marked.js Logic --- */
+        /* --- MERGE POINT: Use Main Branch's Marked.js Logic --- */
         if (role === "assistant") {
             const contentDiv = document.createElement("div");
             contentDiv.className = "miv-message-parsed";
@@ -436,7 +440,7 @@
         }
 
         messagesEl.appendChild(wrapper);
-        
+
         // FIX: Scroll to show user's question at top instead of jumping to bottom
         if (role === "user") {
             // Scroll to show the user's message
@@ -506,7 +510,7 @@
         resetA11yBtn.addEventListener("click", (e) => {
             e.preventDefault();
             e.stopPropagation(); // FIX: Stop event from bubbling up
-            
+
             fontScale = 1;
             applyFontScale();
 
@@ -578,10 +582,15 @@
         }
 
         try {
+            // Send system prompt with the request
             const res = await fetch(backendUrl + "/chat", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ query: text, top_k: 3 })
+                body: JSON.stringify({
+                    query: text,
+                    top_k: 3,
+                    system_prompt: systemPrompt  // Include system prompt
+                })
             });
             const data = await res.json();
             removeTypingIndicator();

@@ -64,6 +64,7 @@ BATCH_SIZE = 100
 class ChatRequest(BaseModel):
     query: str    
     top_k: Optional[int] = 3
+    system_prompt: Optional[str] = None  # Accept system prompt from frontend
 
 class Source(BaseModel):
     text: str
@@ -182,9 +183,9 @@ def merge_paragraphs_into_chunks(paragraphs, max_chunk_size=1000):
     return chunks
 
 # ==========================================
-# 4. SYSTEM PROMPT
+# 4. DEFAULT SYSTEM PROMPT (Fallback Only)
 # ==========================================
-SYSTEM_PROMPT = """You are an AI Co-Pilot for accessibility and inclusive design, 
+DEFAULT_SYSTEM_PROMPT = """You are an AI Co-Pilot for accessibility and inclusive design, 
 specifically supporting Mekong Inclusive Ventures (MIV) practitioners, educators, and 
 Entrepreneur Support Organizations (ESOs).
 
@@ -314,6 +315,10 @@ async def chat_endpoint(req: ChatRequest):
     question = req.query.strip()
     print(f"\n🔥 Received Question: {question}")
 
+    # Use passed system prompt or fall back to default
+    system_prompt = req.system_prompt if req.system_prompt else DEFAULT_SYSTEM_PROMPT
+    print(f"📋 Using System Prompt: {system_prompt[:100]}...")
+
     # 2️⃣ Handle greetings first
     greetings = ['hi', 'hello', 'hey', 'good morning', 'good afternoon']
     if question.lower() in greetings:
@@ -355,12 +360,12 @@ async def chat_endpoint(req: ChatRequest):
         if km_results['matches']:
             km_text = km_results['matches'][0]['metadata'].get('text', '')
             km_topic = km_text
-        print("🔹 KM Retrieved:")
-        for match in km_results['matches']:
-            metadata = match.get('metadata', {})
-            print("  - Heading:", metadata.get('heading'))
-            print("  - Source:", metadata.get('source'))
-            print("  - Text preview:", metadata.get('text')[:150])
+            print("🔹 KM Retrieved:")
+            for match in km_results['matches']:
+                metadata = match.get('metadata', {})
+                print("  - Heading:", metadata.get('heading'))
+                print("  - Source:", metadata.get('source'))
+                print("  - Text preview:", metadata.get('text')[:150])
         else:
             km_text = ""
             km_topic = question
@@ -406,8 +411,8 @@ async def chat_endpoint(req: ChatRequest):
 
         full_context = "\n\n---\n\n".join(context_text_list)
 
-        # --- GENERATE AI RESPONSE ---
-        prompt = f"""{SYSTEM_PROMPT}
+        # --- GENERATE AI RESPONSE USING PASSED SYSTEM PROMPT ---
+        prompt = f"""{system_prompt}
 
 CONTEXT FROM KNOWLEDGE MAP + KNOWLEDGE BASE:
 {full_context}

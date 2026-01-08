@@ -19,7 +19,7 @@ function miv_register_admin_menu()
 add_action('admin_menu', 'miv_register_admin_menu');
 
 /**
- * Register stored options (MVP can still be read-only in UI)
+ * Register stored options
  */
 function miv_register_settings()
 {
@@ -27,7 +27,7 @@ function miv_register_settings()
     register_setting('miv_ai_copilot_settings', 'miv_gemini_api_key');
     register_setting('miv_ai_copilot_settings', 'miv_pinecone_api_key');
     register_setting('miv_ai_copilot_settings', 'miv_pinecone_index');
-    register_setting('miv_ai_copilot_settings', 'miv_default_prompt');
+    register_setting('miv_ai_copilot_settings', 'miv_default_prompt'); // NEW: This is now editable
 }
 add_action('admin_init', 'miv_register_settings');
 
@@ -94,6 +94,17 @@ function miv_render_admin_page()
 
     $tab = isset($_GET['tab']) ? sanitize_text_field($_GET['tab']) : 'settings';
 
+    // Handle form submission for settings
+    if ($tab === 'settings' && isset($_POST['miv_save_settings'])) {
+        check_admin_referer('miv_settings_save', 'miv_settings_nonce');
+
+        // Save the system prompt
+        $new_prompt = isset($_POST['miv_default_prompt']) ? wp_unslash($_POST['miv_default_prompt']) : '';
+        update_option('miv_default_prompt', $new_prompt);
+
+        echo '<div class="notice notice-success is-dismissible"><p>Settings saved successfully!</p></div>';
+    }
+
     // Values
     $backend_url   = miv_get_backend_url();
     $gemini_raw    = get_option('miv_gemini_api_key', '');
@@ -123,7 +134,7 @@ function miv_render_admin_page()
             <img class="miv-admin-logo" src="<?php echo esc_url($logo_url); ?>" alt="MIV logo" />
             <div>
                 <h1 class="miv-admin-title">AI Co-Pilot Settings</h1>
-                <p class="miv-admin-subtitle">Manage your MIV chatbot configuration and knowledge base (MVP).</p>
+                <p class="miv-admin-subtitle">Manage your MIV chatbot configuration and knowledge base.</p>
             </div>
         </div>
 
@@ -144,40 +155,55 @@ function miv_render_admin_page()
 
         <?php if ($tab === 'settings'): ?>
 
-            <div class="miv-panel miv-api-settings">
+            <!-- Now a real form that can be submitted -->
+            <form method="post" action="">
+                <?php wp_nonce_field('miv_settings_save', 'miv_settings_nonce'); ?>
 
-                <div class="miv-api-form-group">
-                    <label class="miv-api-label">Backend URL</label>
-                    <input class="miv-api-input" type="text" value="<?php echo esc_attr($backend_url); ?>" readonly />
-                    <p class="description">Managed backend. (MVP: Read-only)</p>
+                <div class="miv-panel miv-api-settings">
+
+                    <div class="miv-api-form-group">
+                        <label class="miv-api-label">Backend URL</label>
+                        <input class="miv-api-input" type="text" value="<?php echo esc_attr($backend_url); ?>" readonly />
+                        <p class="description">Managed backend. (Read-only for now)</p>
+                    </div>
+
+                    <div class="miv-api-form-group">
+                        <label class="miv-api-label">Gemini API Key</label>
+                        <input class="miv-api-input" type="text" value="<?php echo esc_attr(miv_mask_secret($gemini_raw)); ?>" readonly />
+                        <p class="description">Your Google Gemini API key. (Read-only for now)</p>
+                    </div>
+
+                    <div class="miv-api-form-group">
+                        <label class="miv-api-label">Pinecone API Key</label>
+                        <input class="miv-api-input" type="text" value="<?php echo esc_attr(miv_mask_secret($pinecone_raw)); ?>" readonly />
+                        <p class="description">Your Pinecone vector DB key. (Read-only for now)</p>
+                    </div>
+
+                    <div class="miv-api-form-group">
+                        <label class="miv-api-label">Pinecone Index Name</label>
+                        <input class="miv-api-input" type="text" value="<?php echo esc_attr($pinecone_idx); ?>" readonly />
+                        <p class="description">The index name in Pinecone. (Read-only for now)</p>
+                    </div>
+
+                    <div class="miv-api-form-group">
+                        <label class="miv-api-label" for="miv_default_prompt">System Prompt</label>
+                        <!-- Make this editable with a textarea -->
+                        <textarea
+                            id="miv_default_prompt"
+                            name="miv_default_prompt"
+                            class="miv-prompt-textarea"
+                            rows="12"
+                            style="width: 100%; font-family: monospace; padding: 10px; border: 1px solid #ddd; border-radius: 4px;"><?php echo esc_textarea($default_prompt); ?></textarea>
+                        <p class="description">
+                            This prompt defines the AI's behavior and personality. Edit this to change how the chatbot responds to users.
+                            <br><strong>Note:</strong> Changes take effect immediately for new conversations.
+                        </p>
+                    </div>
+
+                    <!-- Enable the save button -->
+                    <button type="submit" name="miv_save_settings" class="miv-save-btn">Save Changes</button>
                 </div>
-
-                <div class="miv-api-form-group">
-                    <label class="miv-api-label">Gemini API Key</label>
-                    <input class="miv-api-input" type="text" value="<?php echo esc_attr(miv_mask_secret($gemini_raw)); ?>" readonly />
-                    <p class="description">Your Google Gemini API key. (MVP: Read-only)</p>
-                </div>
-
-                <div class="miv-api-form-group">
-                    <label class="miv-api-label">Pinecone API Key</label>
-                    <input class="miv-api-input" type="text" value="<?php echo esc_attr(miv_mask_secret($pinecone_raw)); ?>" readonly />
-                    <p class="description">Your Pinecone vector DB key. (MVP: Read-only)</p>
-                </div>
-
-                <div class="miv-api-form-group">
-                    <label class="miv-api-label">Pinecone Index Name</label>
-                    <input class="miv-api-input" type="text" value="<?php echo esc_attr($pinecone_idx); ?>" readonly />
-                    <p class="description">The index name in Pinecone. (MVP: Read-only)</p>
-                </div>
-
-                <div class="miv-api-form-group">
-                    <label class="miv-api-label">Default System Prompt</label>
-                    <div class="miv-prompt-box"><?php echo nl2br(esc_html($default_prompt)); ?></div>
-                    <p class="description">The base prompt for the AI Co-Pilot. (MVP: Read-only)</p>
-                </div>
-
-                <button type="button" class="miv-save-btn" disabled>Save Changes</button>
-            </div>
+            </form>
 
         <?php else: ?>
 

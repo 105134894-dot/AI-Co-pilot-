@@ -48,7 +48,22 @@ function miv_enqueue_copilot_assets()
         true // load in footer
     );
 
-    // Pass config to JS
+    // Get system prompt from WordPress database
+    $default_prompt = "You are an AI Co-Pilot for accessibility and inclusive design,\n"
+        . "specifically supporting Mekong Inclusive Ventures (MIV) practitioners,\n"
+        . "educators, and Entrepreneur Support Organizations (ESOs).\n\n"
+        . "Your role is to:\n"
+        . "- Guide users in discovering and using accessible digital tools\n"
+        . "- Provide step-by-step guidance on implementing accessibility features\n"
+        . "- Share relevant tool links and inclusive design tips\n"
+        . "- Make accessibility concepts easy to understand for non-technical users\n\n"
+        . "Always be conversational, practical, and focus on actionable advice based on the context provided.\n\n"
+        . "If the context doesn't contain the answer, say you don't know based on the MIV knowledge base,\n"
+        . "but provide general best practices if applicable.";
+
+    $system_prompt = get_option('miv_default_prompt', $default_prompt);
+
+    // Pass config to JS with system prompt
     wp_localize_script(
         'miv-copilot-script',
         'MIV_WIDGET_CONFIG',
@@ -56,6 +71,7 @@ function miv_enqueue_copilot_assets()
             'backendUrl'      => 'https://miv-copilot-backend-49945271860.us-east1.run.app', // !Comment out this line to run locally!
             //'backendUrl'      => 'http://localhost:8000',                                       // !Comment out this line to use production!
             'storageVersion'  => (string) filemtime($plugin_dir . 'assets/js/miv-widget.js'),
+            'systemPrompt'    => $system_prompt  // NEW: Pass system prompt to JavaScript
         )
     );
 }
@@ -63,7 +79,6 @@ add_action('wp_enqueue_scripts', 'miv_enqueue_copilot_assets');
 
 /**
  * Output the widget HTML in the footer
- * --- MERGE CRITICAL: Use HTML from Peter-Branch ---
  * This contains the new Back/Forward/Clear buttons required by the new JS.
  */
 function miv_inject_copilot_widget()
