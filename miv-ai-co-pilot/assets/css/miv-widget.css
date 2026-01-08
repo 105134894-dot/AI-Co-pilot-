@@ -80,13 +80,26 @@
     --miv-font-scale: 1;
 
     width: min(660px, 92vw);
+
+    /*  allow native resize as fallback (still bottom-right) */
+    resize: both;
+
+    /* bounds to keep it usable */
+    min-width: 360px;
+    min-height: 360px;
+    max-width: 92vw;
     max-height: 80vh;
+
     display: none;
     flex-direction: column;
     border-radius: var(--miv-radius);
     background: var(--miv-bg);
     box-shadow: 0 20px 40px rgba(0, 0, 0, 0.35);
     overflow: hidden;
+
+    /*  needed so the handle can position inside the window */
+    position: relative;
+
     color: #102329;
     font-size: calc(1rem * var(--miv-font-scale));
 }
@@ -97,6 +110,33 @@
 
 .miv-chat-window.miv-chat-window--open {
     display: flex;
+}
+
+/* Top-left draggable resize handle (works with JS) */
+.miv-resize-handle {
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    width: 22px;
+    height: 22px;
+    z-index: 20; /* above header background */
+    cursor: nwse-resize;
+    background: transparent;
+}
+
+/* corner grip visual */
+.miv-resize-handle::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-top: 2px solid rgba(255, 255, 255, 0.65);
+    border-left: 2px solid rgba(255, 255, 255, 0.65);
+    border-top-left-radius: 4px;
+    opacity: 0.85;
+}
+
+.miv-chat-window:hover .miv-resize-handle::before {
+    opacity: 1;
 }
 
 /* --- THEMES --- */
@@ -573,6 +613,24 @@
 }
 
 /* Small screens */
+@media (max-width: 600px) {
+    .miv-widget-root {
+        inset: auto 0.75rem 0.75rem auto;
+    }
+
+    .miv-chat-window {
+        width: min(100vw - 1.5rem, 420px);
+        max-height: 85vh;
+
+        resize: none;      
+        min-width: unset;  
+        min-height: unset; 
+    }
+
+    .miv-resize-handle {
+        display: none;     
+    }
+}
 @media (max-width: 600px) {
     .miv-widget-root {
         inset: auto 0.75rem 0.75rem auto;

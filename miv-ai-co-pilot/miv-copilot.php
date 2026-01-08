@@ -103,6 +103,7 @@ function miv_inject_copilot_widget()
             role="dialog"
             aria-modal="true"
             aria-hidden="true">
+            <div class="miv-resize-handle" id="miv-resize-handle" aria-hidden="true"></div>
             <header class="miv-chat-header">
 
                 <div class="miv-header-left">

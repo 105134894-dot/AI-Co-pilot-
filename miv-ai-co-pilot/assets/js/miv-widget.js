@@ -15,20 +15,12 @@
     /* -----------------------------
        Persistent settings
     ----------------------------- */
-    let fontScale = parseFloat(localStorage.getItem('mivFontScale_' + storageVersion) || '1');
+    let fontScale = parseFloat(localStorage.getItem("mivFontScale_" + storageVersion) || "1");
 
     // Theme / contrast state (From Peter's Branch)
-    const THEME_KEY = 'mivTheme_' + storageVersion;
-    const contrastThemes = [
-        "default",
-        "high",
-        "blue",
-        "navy",
-        "sepia",
-        "slate",
-        "yellow"
-    ];
-    let currentThemeIndex = parseInt(localStorage.getItem(THEME_KEY) || '0', 10);
+    const THEME_KEY = "mivTheme_" + storageVersion;
+    const contrastThemes = ["default", "high", "blue", "navy", "sepia", "slate", "yellow"];
+    let currentThemeIndex = parseInt(localStorage.getItem(THEME_KEY) || "0", 10);
     if (isNaN(currentThemeIndex) || currentThemeIndex < 0 || currentThemeIndex >= contrastThemes.length) {
         currentThemeIndex = 0;
     }
@@ -48,7 +40,7 @@
        Temp UI tracking
     ----------------------------- */
     let welcomeShown = false;
-    let hasAskedQuestion = false; // NEW: Track if user has asked any question
+    let hasAskedQuestion = false; // Track if user has asked any question
 
     /* -----------------------------
        Constants
@@ -112,6 +104,7 @@
 
     const launcherBtn = document.getElementById("miv-launcher-btn");
     const chatWindow = document.getElementById("miv-chat-window");
+    const resizeHandle = document.getElementById("miv-resize-handle"); // optional
     const closeBtn = document.getElementById("miv-close-btn");
 
     const a11yToggle = document.getElementById("miv-a11y-toggle");
@@ -133,21 +126,134 @@
     const clearBtn = document.getElementById("miv-clear-chat-btn");
 
     /* -----------------------------
+       Top-left drag-resize (kept as-is)
+    ----------------------------- */
+    const SIZE_KEY = "mivChatWindowSize_" + storageVersion;
+
+    function clamp(n, min, max) {
+        return Math.max(min, Math.min(max, n));
+    }
+
+    function getMaxW() {
+        return Math.floor(window.innerWidth * 0.92);
+    }
+
+    function getMaxH() {
+        return Math.floor(window.innerHeight * 0.8);
+    }
+
+    function applySavedSize() {
+        try {
+            const raw = localStorage.getItem(SIZE_KEY);
+            if (!raw) return;
+
+            const parsed = JSON.parse(raw);
+            const w = parsed && typeof parsed.w === "number" ? parsed.w : null;
+            const h = parsed && typeof parsed.h === "number" ? parsed.h : null;
+
+            if (w != null) chatWindow.style.width = clamp(w, 360, getMaxW()) + "px";
+            if (h != null) chatWindow.style.height = clamp(h, 360, getMaxH()) + "px";
+        } catch {
+            // ignore
+        }
+    }
+
+    function saveSize() {
+        try {
+            const rect = chatWindow.getBoundingClientRect();
+            localStorage.setItem(
+                SIZE_KEY,
+                JSON.stringify({
+                    w: Math.round(rect.width),
+                    h: Math.round(rect.height)
+                })
+            );
+        } catch {
+            // ignore
+        }
+    }
+
+    (function enableTopLeftResize() {
+        if (!chatWindow || !resizeHandle) return;
+
+        let resizing = false;
+        let startX = 0;
+        let startY = 0;
+        let startW = 0;
+        let startH = 0;
+
+        function onDown(e) {
+            if (e.button !== undefined && e.button !== 0) return;
+
+            resizing = true;
+            const pt = e.touches ? e.touches[0] : e;
+
+            const rect = chatWindow.getBoundingClientRect();
+            startX = pt.clientX;
+            startY = pt.clientY;
+            startW = rect.width;
+            startH = rect.height;
+
+            document.addEventListener("mousemove", onMove);
+            document.addEventListener("mouseup", onUp);
+            document.addEventListener("touchmove", onMove, { passive: false });
+            document.addEventListener("touchend", onUp);
+
+            e.preventDefault();
+            e.stopPropagation();
+        }
+
+        function onMove(e) {
+            if (!resizing) return;
+
+            const pt = e.touches ? e.touches[0] : e;
+
+            const dx = startX - pt.clientX;
+            const dy = startY - pt.clientY;
+
+            const newW = clamp(startW + dx, 360, getMaxW());
+            const newH = clamp(startH + dy, 360, getMaxH());
+
+            chatWindow.style.width = newW + "px";
+            chatWindow.style.height = newH + "px";
+
+            if (e.cancelable) e.preventDefault();
+        }
+
+        function onUp(e) {
+            if (!resizing) return;
+            resizing = false;
+
+            document.removeEventListener("mousemove", onMove);
+            document.removeEventListener("mouseup", onUp);
+            document.removeEventListener("touchmove", onMove);
+            document.removeEventListener("touchend", onUp);
+
+            saveSize();
+
+            if (e && e.stopPropagation) e.stopPropagation();
+        }
+
+        resizeHandle.addEventListener("mousedown", onDown);
+        resizeHandle.addEventListener("touchstart", onDown, { passive: false });
+    })();
+
+    /* -----------------------------
        Markdown parser using marked.js library
     ----------------------------- */
     function parseMarkdown(text) {
-        if (!text) return '';
+        if (!text) return "";
 
-        if (typeof marked !== 'undefined') {
+        if (typeof marked !== "undefined") {
             try {
                 return marked.parse(text);
             } catch (e) {
-                console.warn('Marked.js parsing failed, falling back to plain text', e);
-                return text.replace(/\n/g, '<br>');
+                console.warn("Marked.js parsing failed, falling back to plain text", e);
+                return text.replace(/\n/g, "<br>");
             }
         }
 
-        return text.replace(/\n/g, '<br>');
+        return text.replace(/\n/g, "<br>");
     }
 
     /* -----------------------------
@@ -169,10 +275,7 @@
 
     function saveHistory(history) {
         try {
-            localStorage.setItem(
-                STORAGE_KEY,
-                JSON.stringify(history.slice(-MAX_MESSAGES))
-            );
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(history.slice(-MAX_MESSAGES)));
         } catch (e) {
             console.warn("MIV history save failed", e);
         }
@@ -181,7 +284,9 @@
     function clearHistory() {
         try {
             localStorage.removeItem(STORAGE_KEY);
-        } catch { }
+        } catch {
+            // ignore
+        }
     }
 
     function pushToHistory(role, text) {
@@ -196,7 +301,9 @@
             if (legacy && !localStorage.getItem(STORAGE_KEY)) {
                 localStorage.removeItem(LEGACY_KEY);
             }
-        } catch { }
+        } catch {
+            // ignore
+        }
 
         const h = loadHistory();
         if (h.length === 1 && /chat cleared/i.test(h[0].text || "")) {
@@ -209,9 +316,9 @@
         if (!history.length) return;
 
         messagesEl.innerHTML = "";
-        history.forEach(m => addMessage(m.role, m.text, { skipSave: true }));
+        history.forEach((m) => addMessage(m.role, m.text, { skipSave: true }));
 
-        const hasUserMessage = history.some(m => m.role === 'user');
+        const hasUserMessage = history.some((m) => m.role === "user");
         if (hasUserMessage) {
             hasAskedQuestion = true;
             quickWrap.style.display = "none";
@@ -225,7 +332,6 @@
     /* -----------------------------
        Navigation helpers  (From Peter's Branch)
     ----------------------------- */
-
     function statesEqual(a, b) {
         return (!a && !b) || (a && b && a.intent === b.intent && a.message === b.message);
     }
@@ -236,30 +342,30 @@
 
         if (canGoBack) {
             backBtn.hidden = false;
-            backBtn.classList.remove('miv-hidden');
+            backBtn.classList.remove("miv-hidden");
             backBtn.tabIndex = 0;
-            backBtn.setAttribute('aria-hidden', 'false');
-            backBtn.setAttribute('aria-disabled', 'false');
+            backBtn.setAttribute("aria-hidden", "false");
+            backBtn.setAttribute("aria-disabled", "false");
         } else {
             backBtn.hidden = true;
-            backBtn.classList.add('miv-hidden');
+            backBtn.classList.add("miv-hidden");
             backBtn.tabIndex = -1;
-            backBtn.setAttribute('aria-hidden', 'true');
-            backBtn.setAttribute('aria-disabled', 'true');
+            backBtn.setAttribute("aria-hidden", "true");
+            backBtn.setAttribute("aria-disabled", "true");
         }
 
         if (canGoForward) {
             forwardBtn.hidden = false;
-            forwardBtn.classList.remove('miv-hidden');
+            forwardBtn.classList.remove("miv-hidden");
             forwardBtn.tabIndex = 0;
-            forwardBtn.setAttribute('aria-hidden', 'false');
-            forwardBtn.setAttribute('aria-disabled', 'false');
+            forwardBtn.setAttribute("aria-hidden", "false");
+            forwardBtn.setAttribute("aria-disabled", "false");
         } else {
             forwardBtn.hidden = true;
-            forwardBtn.classList.add('miv-hidden');
+            forwardBtn.classList.add("miv-hidden");
             forwardBtn.tabIndex = -1;
-            forwardBtn.setAttribute('aria-hidden', 'true');
-            forwardBtn.setAttribute('aria-disabled', 'true');
+            forwardBtn.setAttribute("aria-hidden", "true");
+            forwardBtn.setAttribute("aria-disabled", "true");
         }
     }
 
@@ -283,10 +389,9 @@
             renderQuickQuestions(PROMPTS_BY_INTENT[intent] || QUICK_QUESTIONS);
             addMessage(
                 "assistant",
-                `Got it – ${INTENT_CATEGORIES.find(c => c.key === intent).label}. Pick a quick question or type your own.`,
+                `Got it – ${INTENT_CATEGORIES.find((c) => c.key === intent).label}. Pick a quick question or type your own.`,
                 { skipSave: true, isTemp: true }
             );
-            // Only show if user hasn't asked a question yet
             quickWrap.style.display = hasAskedQuestion ? "none" : "flex";
         } else {
             renderIntentButtons();
@@ -318,7 +423,7 @@
 
     function removeTempMessages() {
         const temps = messagesEl.querySelectorAll('[data-temp="1"]');
-        temps.forEach(el => el.remove());
+        temps.forEach((el) => el.remove());
         welcomeShown = false;
     }
 
@@ -326,7 +431,7 @@
         clearQuickArea();
         renderTitle("What can I help you with today?");
 
-        INTENT_CATEGORIES.forEach(cat => {
+        INTENT_CATEGORIES.forEach((cat) => {
             const btn = document.createElement("button");
             btn.type = "button";
             btn.className = "miv-chip";
@@ -352,7 +457,7 @@
         clearQuickArea();
         renderTitle("Quick questions:");
 
-        (questions || []).slice(0, 4).forEach(q => {
+        (questions || []).slice(0, 4).forEach((q) => {
             const btn = document.createElement("button");
             btn.type = "button";
             btn.className = "miv-chip";
@@ -366,7 +471,7 @@
                 navigateTo(newState);
                 updateNavigationButtons();
 
-                hasAskedQuestion = true; // Mark that user has asked a question
+                hasAskedQuestion = true;
                 quickWrap.style.display = "none";
                 sendMessage(q, { skipNavigate: true });
             });
@@ -397,41 +502,49 @@
 
     /* -----------------------------
        Rendering helpers
-        (MERGED: Uses Peter's temp logic + Main's marked.js parser)
+       (MERGED: Uses Peter's temp logic + Main's marked.js parser)
     ----------------------------- */
     function addMessage(role, text, opts) {
         const options = opts || {};
 
         if (options.isTemp) {
             const temps = Array.from(messagesEl.querySelectorAll('[data-temp="1"]'));
-            const duplicate = temps.some(el => el.textContent && el.textContent.trim() === String(text || "").trim());
+            const duplicate = temps.some(
+                (el) => el.textContent && el.textContent.trim() === String(text || "").trim()
+            );
             if (duplicate) return;
         }
 
         if (!options.skipSave) pushToHistory(role, text);
 
-        if (role === 'user') {
+        if (role === "user") {
             hasAskedQuestion = true;
             quickWrap.style.display = "none";
         }
 
         const wrapper = document.createElement("div");
         wrapper.className = "miv-message miv-message--" + role;
+
         if (options.isTemp) {
             wrapper.setAttribute("data-temp", "1");
             welcomeShown = true;
         }
 
         if (role === "assistant") {
-            wrapper.setAttribute('role', 'alert');
-            wrapper.setAttribute('aria-live', 'assertive');
-        }
+            wrapper.setAttribute("role", "alert");
+            wrapper.setAttribute("aria-live", "assertive");
 
-        /* --- MERGE POINT: Use Main Branch's Marked.js Logic --- */
-        if (role === "assistant") {
             const contentDiv = document.createElement("div");
             contentDiv.className = "miv-message-parsed";
             contentDiv.innerHTML = parseMarkdown(text);
+
+            //  Ensure all links open in a new tab
+            const links = contentDiv.querySelectorAll("a");
+            links.forEach((link) => {
+                link.setAttribute("target", "_blank");
+                link.setAttribute("rel", "noopener noreferrer");
+            });
+
             wrapper.appendChild(contentDiv);
         } else {
             const p = document.createElement("p");
@@ -473,8 +586,8 @@
        Accessibility controls
     ----------------------------- */
     function applyFontScale() {
-        chatWindow.style.setProperty('--miv-font-scale', fontScale);
-        localStorage.setItem('mivFontScale_' + storageVersion, fontScale);
+        chatWindow.style.setProperty("--miv-font-scale", fontScale);
+        localStorage.setItem("mivFontScale_" + storageVersion, fontScale);
     }
 
     function applyContrast() {
@@ -501,7 +614,7 @@
         }
 
         contrastToggle.setAttribute("aria-pressed", String(highContrast));
-        localStorage.setItem('mivHighContrast_' + storageVersion, String(highContrast));
+        localStorage.setItem("mivHighContrast_" + storageVersion, String(highContrast));
         localStorage.setItem(THEME_KEY, String(currentThemeIndex));
     }
 
@@ -543,6 +656,9 @@
     }
 
     function openChat() {
+        // Apply saved size each time the chat opens
+        applySavedSize();
+
         chatWindow.classList.add("miv-chat-window--open");
         chatWindow.setAttribute("aria-hidden", "false");
         launcherBtn.style.display = "none";
@@ -557,11 +673,14 @@
     }
 
     function closeChat() {
+        // Save current size on close
+        saveSize();
         removeTempMessages();
         chatWindow.classList.remove("miv-chat-window--open");
         chatWindow.setAttribute("aria-hidden", "true");
         a11yPanel.setAttribute("hidden", "true");
         launcherBtn.style.display = "";
+
     }
 
     closeBtn.addEventListener("click", (e) => {
@@ -613,10 +732,14 @@
         openChat();
     });
 
-    document.addEventListener("pointerdown", (e) => {
-        if (!isChatOpen() || root.contains(e.target)) return;
-        closeChat();
-    }, true);
+    document.addEventListener(
+        "pointerdown",
+        (e) => {
+            if (!isChatOpen() || root.contains(e.target)) return;
+            closeChat();
+        },
+        true
+    );
 
     document.addEventListener("keydown", (e) => {
         if (e.key === "Escape" && isChatOpen()) closeChat();
@@ -692,9 +815,14 @@
         sendMessage(text);
     });
 
+    window.addEventListener("pagehide", () => {
+        // Save size if user navigates away / changes page
+        saveSize();
+    });    
+
     /* -----------------------------
-       Initial load
-    ----------------------------- */
+   Initial load
+    ------------------------- */
     cleanupLegacyOrBadHistory();
     renderHistory();
 
@@ -704,6 +832,10 @@
         ensureFreshStartUI();
     }
 
+    //  Restore saved size immediately on page load
+    applySavedSize();
+
     applyFontScale();
     applyContrast();
+
 })();
