@@ -126,6 +126,47 @@
     const clearBtn = document.getElementById("miv-clear-chat-btn");
 
     /* -----------------------------
+       Quick questions UI
+    ----------------------------- */
+    const quickWrap = document.createElement("div");
+    quickWrap.className = "miv-quick-questions";
+    chatWindow.insertBefore(quickWrap, messagesEl);
+
+    /* -----------------------------
+       NEW: Make quickWrap scroll correctly when widget is resized
+    ----------------------------- */
+    function adjustQuickWrapScroll() {
+        if (!chatWindow || !quickWrap) return;
+        if (quickWrap.style.display === "none") return;
+
+        const headerEl = chatWindow.querySelector(".miv-chat-header");
+        const inputRowEl = form;
+
+        const totalH = chatWindow.clientHeight || 0;
+        const headerH = headerEl ? headerEl.offsetHeight : 0;
+        const inputH = inputRowEl ? inputRowEl.offsetHeight : 0;
+
+        // available vertical space between header and input row
+        const available = Math.max(0, totalH - headerH - inputH);
+
+        // leave a bit of padding; set a safe minimum so it never collapses
+        const maxH = Math.max(160, available - 16);
+
+        quickWrap.style.maxHeight = `${maxH}px`;
+        quickWrap.style.overflowY = "auto";
+        quickWrap.style.overscrollBehavior = "contain";
+        quickWrap.style.webkitOverflowScrolling = "touch";
+    }
+
+    // Observe chatWindow resizes (works with your drag resize + saved sizes)
+    if (typeof ResizeObserver !== "undefined") {
+        const ro = new ResizeObserver(() => adjustQuickWrapScroll());
+        if (chatWindow) ro.observe(chatWindow);
+    } else {
+        window.addEventListener("resize", adjustQuickWrapScroll);
+    }
+
+    /* -----------------------------
        Top-left drag-resize (kept as-is)
     ----------------------------- */
     const SIZE_KEY = "mivChatWindowSize_" + storageVersion;
@@ -216,6 +257,9 @@
 
             chatWindow.style.width = newW + "px";
             chatWindow.style.height = newH + "px";
+
+            // NEW: keep quick area sized correctly while resizing
+            adjustQuickWrapScroll();
 
             if (e.cancelable) e.preventDefault();
         }
@@ -324,6 +368,7 @@
             quickWrap.style.display = "none";
         } else {
             quickWrap.style.display = "flex";
+            adjustQuickWrapScroll();
         }
 
         updateNavigationButtons();
@@ -381,34 +426,9 @@
         updateNavigationButtons();
     }
 
-    function renderState(state) {
-        intent = state.intent || null;
-        removeTempMessages();
-
-        if (intent) {
-            renderQuickQuestions(PROMPTS_BY_INTENT[intent] || QUICK_QUESTIONS);
-            addMessage(
-                "assistant",
-                `Got it – ${INTENT_CATEGORIES.find((c) => c.key === intent).label}. Pick a quick question or type your own.`,
-                { skipSave: true, isTemp: true }
-            );
-            quickWrap.style.display = hasAskedQuestion ? "none" : "flex";
-        } else {
-            renderIntentButtons();
-            addMessage("assistant", WELCOME_MESSAGE, { skipSave: true, isTemp: true });
-            quickWrap.style.display = hasAskedQuestion ? "none" : "flex";
-        }
-
-        updateNavigationButtons();
-    }
-
     /* -----------------------------
-       Quick questions UI
+       Quick questions UI helpers
     ----------------------------- */
-    const quickWrap = document.createElement("div");
-    quickWrap.className = "miv-quick-questions";
-    chatWindow.insertBefore(quickWrap, messagesEl);
-
     function clearQuickArea() {
         quickWrap.innerHTML = "";
         quickWrap.style.display = "flex";
@@ -451,6 +471,9 @@
 
             quickWrap.appendChild(btn);
         });
+
+        // NEW: ensure scroll sizing is correct right after render
+        adjustQuickWrapScroll();
     }
 
     function renderQuickQuestions(questions) {
@@ -489,20 +512,53 @@
             renderState(newState);
         });
         quickWrap.appendChild(reset);
+
+        // NEW: ensure scroll sizing is correct right after render
+        adjustQuickWrapScroll();
+    }
+
+    /* -----------------------------
+       FIXED: renderState should show quick UI during navigation,
+              even if hasAskedQuestion is true.
+              (We still hide it when the user actually chats.)
+    ----------------------------- */
+    function renderState(state) {
+        intent = state.intent || null;
+        removeTempMessages();
+
+        // ✅ Always show quick UI when navigating
+        quickWrap.style.display = "flex";
+
+        if (intent) {
+            renderQuickQuestions(PROMPTS_BY_INTENT[intent] || QUICK_QUESTIONS);
+            addMessage(
+                "assistant",
+                `Got it – ${INTENT_CATEGORIES.find((c) => c.key === intent).label}. Pick a quick question or type your own.`,
+                { skipSave: true, isTemp: true }
+            );
+        } else {
+            renderIntentButtons();
+            addMessage("assistant", WELCOME_MESSAGE, { skipSave: true, isTemp: true });
+        }
+
+        adjustQuickWrapScroll();
+        updateNavigationButtons();
     }
 
     function ensureFreshStartUI() {
+        // On fresh start we *do* respect hasAskedQuestion for hiding/showing
         quickWrap.style.display = hasAskedQuestion ? "none" : "flex";
         renderIntentButtons();
         if (!welcomeShown) {
             addMessage("assistant", WELCOME_MESSAGE, { skipSave: true, isTemp: true });
         }
+        if (!hasAskedQuestion) adjustQuickWrapScroll();
         updateNavigationButtons();
     }
 
     /* -----------------------------
        Rendering helpers
-       (MERGED: Uses Peter's temp logic + Main's marked.js parser)
+       (MERGED: Uses temp logic + marked.js parser)
     ----------------------------- */
     function addMessage(role, text, opts) {
         const options = opts || {};
@@ -538,7 +594,7 @@
             contentDiv.className = "miv-message-parsed";
             contentDiv.innerHTML = parseMarkdown(text);
 
-            //  Ensure all links open in a new tab
+            // Ensure all links open in a new tab
             const links = contentDiv.querySelectorAll("a");
             links.forEach((link) => {
                 link.setAttribute("target", "_blank");
@@ -554,12 +610,10 @@
 
         messagesEl.appendChild(wrapper);
 
-        // FIX: Scroll to show user's question at top instead of jumping to bottom
+        // Scroll behaviour (kept as-is)
         if (role === "user") {
-            // Scroll to show the user's message
-            wrapper.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            wrapper.scrollIntoView({ behavior: "smooth", block: "start" });
         } else {
-            // For assistant messages, scroll to bottom to show full response
             messagesEl.scrollTop = messagesEl.scrollHeight;
         }
     }
@@ -622,15 +676,13 @@
     if (resetA11yBtn) {
         resetA11yBtn.addEventListener("click", (e) => {
             e.preventDefault();
-            e.stopPropagation(); // FIX: Stop event from bubbling up
+            e.stopPropagation();
 
             fontScale = 1;
             applyFontScale();
 
             currentThemeIndex = 0;
             applyContrast();
-
-            // Don't close the panel - let user see the changes
         });
     }
 
@@ -644,7 +696,7 @@
         futureStack = [];
         currentState = { intent: null, message: null };
         welcomeShown = false;
-        hasAskedQuestion = false; // Reset question tracking
+        hasAskedQuestion = false;
         ensureFreshStartUI();
     });
 
@@ -669,6 +721,10 @@
         }
 
         updateNavigationButtons();
+
+        // NEW: ensure quick area is sized correctly on open
+        adjustQuickWrapScroll();
+
         input.focus();
     }
 
@@ -680,7 +736,6 @@
         chatWindow.setAttribute("aria-hidden", "true");
         a11yPanel.setAttribute("hidden", "true");
         launcherBtn.style.display = "";
-
     }
 
     closeBtn.addEventListener("click", (e) => {
@@ -701,14 +756,13 @@
         }
 
         try {
-            // Send system prompt with the request
             const res = await fetch(backendUrl + "/chat", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     query: text,
                     top_k: 3,
-                    system_prompt: systemPrompt  // Include system prompt
+                    system_prompt: systemPrompt
                 })
             });
             const data = await res.json();
@@ -779,32 +833,27 @@
         applyContrast();
     });
 
+    /* -----------------------------
+       FIXED: Back/Forward should always visibly render the state
+    ----------------------------- */
     backBtn.addEventListener("click", () => {
         if (historyStack.length === 0) return;
+
         futureStack.push({ ...currentState });
         const prevState = historyStack.pop();
         currentState = prevState;
-        renderState(prevState);
 
-        if (!currentState.intent && !currentState.message) {
-            quickWrap.style.display = hasAskedQuestion ? "none" : "flex";
-        }
-
-        updateNavigationButtons();
+        renderState(prevState); // renderState now shows quick UI properly
     });
 
     forwardBtn.addEventListener("click", () => {
         if (futureStack.length === 0) return;
+
         historyStack.push({ ...currentState });
         const nextState = futureStack.pop();
         currentState = nextState;
-        renderState(nextState);
 
-        if (currentState.message) {
-            quickWrap.style.display = "none";
-        }
-
-        updateNavigationButtons();
+        renderState(nextState); // renderState now shows quick UI properly
     });
 
     form.addEventListener("submit", (e) => {
@@ -816,13 +865,12 @@
     });
 
     window.addEventListener("pagehide", () => {
-        // Save size if user navigates away / changes page
         saveSize();
-    });    
+    });
 
     /* -----------------------------
-   Initial load
-    ------------------------- */
+       Initial load
+    ----------------------------- */
     cleanupLegacyOrBadHistory();
     renderHistory();
 
@@ -832,10 +880,12 @@
         ensureFreshStartUI();
     }
 
-    //  Restore saved size immediately on page load
+    // Restore saved size immediately on page load
     applySavedSize();
 
     applyFontScale();
     applyContrast();
 
+    // NEW: size quickWrap correctly on load (helps first-open sizing)
+    adjustQuickWrapScroll();
 })();
