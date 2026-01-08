@@ -140,7 +140,7 @@
         if (quickWrap.style.display === "none") return;
 
         const headerEl = chatWindow.querySelector(".miv-chat-header");
-        const inputRowEl = form;
+        const inputRowEl = chatWindow.querySelector(".miv-input-row");
 
         const totalH = chatWindow.clientHeight || 0;
         const headerH = headerEl ? headerEl.offsetHeight : 0;
@@ -198,6 +198,34 @@
             // ignore
         }
     }
+
+    /* -----------------------------
+   Clamp chat size to viewport
+----------------------------- */
+    function clampChatToViewport({ persist = false } = {}) {
+        if (!chatWindow) return;
+
+        const rect = chatWindow.getBoundingClientRect();
+        const currentW = parseFloat(chatWindow.style.width) || rect.width;
+        const currentH = parseFloat(chatWindow.style.height) || rect.height;
+
+        const nextW = clamp(currentW, 360, getMaxW());
+        const nextH = clamp(currentH, 360, getMaxH());
+
+        if (Math.round(nextW) !== Math.round(currentW)) {
+            chatWindow.style.width = nextW + "px";
+        }
+
+        if (Math.round(nextH) !== Math.round(currentH)) {
+            chatWindow.style.height = nextH + "px";
+        }
+
+        if (persist) saveSize();
+
+        // ✅ keep quick options sized correctly after clamping
+        adjustQuickWrapScroll();
+    }
+
 
     function saveSize() {
         try {
@@ -867,6 +895,21 @@
     window.addEventListener("pagehide", () => {
         saveSize();
     });
+
+        /* -----------------------------
+    Resize chat when browser resizes
+    ----------------------------- */
+    let mivResizeRAF = null;
+
+    function onViewportResize() {
+        if (mivResizeRAF) cancelAnimationFrame(mivResizeRAF);
+        mivResizeRAF = requestAnimationFrame(() => {
+            clampChatToViewport({ persist: true });
+        });
+    }
+
+    window.addEventListener("resize", onViewportResize);
+    window.addEventListener("orientationchange", onViewportResize);
 
     /* -----------------------------
        Initial load
