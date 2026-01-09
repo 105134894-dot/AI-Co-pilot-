@@ -269,7 +269,7 @@ function miv_kb_list()
 
     // Call the backend to get the list
     $response = wp_remote_get($backend_url . '/list-documents', array(
-        'timeout' => 30
+        'timeout' => 60 // do not change.
     ));
 
     if (is_wp_error($response)) {
@@ -326,7 +326,7 @@ function miv_kb_upload()
     curl_setopt($ch, CURLOPT_POST, 1);
     curl_setopt($ch, CURLOPT_POSTFIELDS, $data);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-    curl_setopt($ch, CURLOPT_TIMEOUT, 60);
+    curl_setopt($ch, CURLOPT_TIMEOUT, 300); // do not change. will stop documents from ingesting if too low.
 
     $response = curl_exec($ch);
     $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
