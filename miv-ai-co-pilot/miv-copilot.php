@@ -11,6 +11,7 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
+// Load admin-pages.php FIRST (it contains miv_get_backend_url)
 require_once plugin_dir_path(__FILE__) . 'includes/admin-pages.php';
 
 /**
@@ -63,15 +64,14 @@ function miv_enqueue_copilot_assets()
 
     $system_prompt = get_option('miv_default_prompt', $default_prompt);
 
-    // Pass config to JS with system prompt
+    // Use centralized function from admin-pages.php
     wp_localize_script(
         'miv-copilot-script',
         'MIV_WIDGET_CONFIG',
         array(
-            'backendUrl'      => 'https://miv-copilot-backend-49945271860.us-east1.run.app', // !Comment out this line to run locally!
-            //'backendUrl'      => 'http://localhost:8000',                                       // !Comment out this line to use production!
+            'backendUrl'      => miv_get_backend_url(), // Single source of truth
             'storageVersion'  => (string) filemtime($plugin_dir . 'assets/js/miv-widget.js'),
-            'systemPrompt'    => $system_prompt  // NEW: Pass system prompt to JavaScript
+            'systemPrompt'    => $system_prompt
         )
     );
 }

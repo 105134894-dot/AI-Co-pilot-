@@ -75,11 +75,24 @@ function miv_mask_secret($value)
     return substr($value, 0, 4) . str_repeat('•', $len - 8) . substr($value, -4);
 }
 
+/**
+ * SINGLE SOURCE OF TRUTH: Backend URL Configuration
+ * 
+ * This function is used by:
+ * - Frontend chatbot widget (via wp_localize_script in miv-copilot.php)
+ * - Admin panel display (in miv_render_admin_page below)
+ * - AJAX endpoints (miv_kb_list and miv_kb_upload)
+ * 
+ * To switch environments, change ONLY the fallback URL below.
+ */
 function miv_get_backend_url()
 {
     $url = get_option('miv_backend_url', '');
-    // Default to Google cloud URL if no setting is saved
-    if (!$url) $url = 'https://miv-copilot-backend-49945271860.us-east1.run.app';
+
+    // SINGLE SOURCE OF TRUTH: Change this one line to switch environments
+    if (!$url) $url = 'https://miv-copilot-backend-49945271860.us-east1.run.app'; // Production (default)
+    // if (!$url) $url = 'http://localhost:8000'; // Uncomment for local development
+
     return rtrim($url, '/');
 }
 
@@ -100,11 +113,15 @@ function miv_render_admin_page()
         $new_prompt = isset($_POST['miv_default_prompt']) ? wp_unslash($_POST['miv_default_prompt']) : '';
         update_option('miv_default_prompt', $new_prompt);
 
+        // Save the backend URL
+        $new_url = isset($_POST['miv_backend_url']) ? sanitize_url($_POST['miv_backend_url']) : '';
+        update_option('miv_backend_url', $new_url);
+
         echo '<div class="notice notice-success is-dismissible"><p>Settings saved successfully!</p></div>';
     }
 
-    // Values (keep only what's needed for this UI)
-    $backend_url   = miv_get_backend_url();
+    //  Use centralized function
+    $backend_url = miv_get_backend_url();
 
     $default_prompt = get_option(
         'miv_default_prompt',
@@ -161,8 +178,11 @@ function miv_render_admin_page()
 
                     <div class="miv-api-form-group">
                         <label class="miv-api-label">Backend URL</label>
-                        <input class="miv-api-input" type="text" value="<?php echo esc_attr($backend_url); ?>" readonly />
-                        <p class="description">Managed backend. (Read-only for now)</p>
+                        <input class="miv-api-input" type="url" name="miv_backend_url" value="<?php echo esc_attr($backend_url); ?>"placeholder="https://..." />
+                        <p class="description">
+                            Enter your backend server URL (e.g., Cloud Run or <code>http://localhost:8000</code>).
+                            <br>Leave empty to use the default Cloud server.
+                        </p>
                     </div>
 
                     <div class="miv-api-form-group">
@@ -244,6 +264,7 @@ function miv_kb_list()
     }
     check_ajax_referer('miv_admin_nonce', 'nonce');
 
+    // Use centralized function
     $backend_url = miv_get_backend_url();
 
     // Call the backend to get the list
@@ -291,6 +312,7 @@ function miv_kb_upload()
         wp_send_json_error(array('message' => 'No file received'));
     }
 
+    // Use centralized function
     $backend_url = miv_get_backend_url();
     $file = $_FILES['miv_kb_file'];
 
