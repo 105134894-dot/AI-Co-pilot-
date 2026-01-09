@@ -14,14 +14,7 @@
 
     function setStatus(msg) {
         const el = getStatusEl();
-        if (el) el.textContent = msg || "";
-    }
-
-    function resetProgress() {
-        const bar = getProgressBar();
-        const wrap = getProgressWrap();
-        if (bar) bar.style.width = "0%";
-        if (wrap) wrap.style.display = "none";
+        if (el) el.innerHTML = msg || ""; // Changed to innerHTML to allow styling (colors)
     }
 
     async function refreshList() {
@@ -106,7 +99,8 @@
             .replaceAll("'", "&#039;");
     }
 
-    form.addEventListener("submit", function (e) {
+    // --- NEW UPLOAD LOGIC ---
+    form.addEventListener("submit", async function (e) {
         e.preventDefault();
 
         const file = fileInput.files && fileInput.files[0];
@@ -118,64 +112,81 @@
         const progressWrap = getProgressWrap();
         const progressBar = getProgressBar();
 
-        setStatus("Uploading…");
-
-        // Safety check: ensure elements exist before accessing .style
+        // 1. Reset UI & Start "Fake" Loading Message
         if (progressWrap) progressWrap.style.display = "block";
         if (progressBar) progressBar.style.width = "0%";
+        setStatus("Uploading & Processing... (This may take a minute)");
 
         if (btn) btn.disabled = true;
 
+        // 2. Start the Fake Progress Timer
+        // We want to reach approx 95% in 80 seconds (80000ms)
+        let currentProgress = 0;
+        const maxFakeProgress = 95; // Don't hit 100% until it's actually done
+        const duration = 80000;
+        const intervalTime = 500; // Update every half second
+        const increment = maxFakeProgress / (duration / intervalTime);
+
+        const progressInterval = setInterval(() => {
+            currentProgress += increment;
+
+            // Cap it at 95%
+            if (currentProgress >= maxFakeProgress) {
+                currentProgress = maxFakeProgress;
+            }
+
+            if (progressBar) {
+                progressBar.style.width = Math.round(currentProgress) + "%";
+            }
+        }, intervalTime);
+
+        // 3. Prepare the Real Request
         const fd = new FormData();
         fd.append("action", "miv_kb_upload");
         fd.append("nonce", MIV_ADMIN.nonce);
         fd.append("miv_kb_file", file);
 
-        const xhr = new XMLHttpRequest();
-        xhr.open("POST", MIV_ADMIN.ajaxUrl, true);
+        try {
+            // 4. Send Request (we ignore real network progress now)
+            const res = await fetch(MIV_ADMIN.ajaxUrl, {
+                method: "POST",
+                body: fd
+            });
 
-        xhr.upload.addEventListener("progress", function (evt) {
-            if (!evt.lengthComputable) return;
-            const pct = Math.round((evt.loaded / evt.total) * 100);
+            // Parse response
+            // (Note: WordPress AJAX success usually returns HTTP 200 even on logical errors, so we check data.success)
+            const data = await res.json();
 
-            // Check again inside the event callback
-            const bar = getProgressBar();
-            if (bar) bar.style.width = pct + "%";
+            // STOP the fake timer immediately
+            clearInterval(progressInterval);
 
-            setStatus(`Uploading… ${pct}%`);
-        });
+            if (data.success) {
+                // 5. Success! Snap to 100%
+                if (progressBar) progressBar.style.width = "100%";
+                setStatus('<span style="color:green;">Upload complete ✅</span>');
 
-        xhr.onload = async function () {
-            if (btn) btn.disabled = false;
-
-            try {
-                const data = JSON.parse(xhr.responseText || "{}");
-                if (!data.success) {
-                    setStatus(data.data?.message || "Upload failed.");
-                    return;
-                }
-
-                setStatus("Upload complete ✅");
-                const bar = getProgressBar();
-                if (bar) bar.style.width = "100%";
-
-                await refreshList();
-
+                // Clear the input
                 fileInput.value = "";
-            } catch (err) {
-                console.error(err);
-                setStatus("Upload finished, but response could not be read.");
+
+                // Refresh the file list
+                await refreshList();
+            } else {
+                // Backend logical error
+                setStatus('<span style="color:red;">' + (data.data?.message || "Upload failed.") + '</span>');
+                if (progressBar) progressBar.style.width = "0%";
             }
-        };
 
-        xhr.onerror = function () {
+        } catch (err) {
+            // Network or Parsing error
+            clearInterval(progressInterval);
+            console.error(err);
+            setStatus('<span style="color:red;">Upload failed due to a network error.</span>');
+            if (progressBar) progressBar.style.width = "0%";
+        } finally {
             if (btn) btn.disabled = false;
-            setStatus("Upload failed due to a network error.");
-            resetProgress();
-        };
-
-        xhr.send(fd);
+        }
     });
 
+    // Initial Load
     refreshList();
 })();
