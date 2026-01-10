@@ -50,7 +50,13 @@ index_kb = pc.Index(PINECONE_INDEX_NAME)
 
 # Knowledge Map Index
 if KNOWLEDGE_MAP_INDEX_NAME not in pc.list_indexes().names():
-    print(f"⚠️ Knowledge Map index '{KNOWLEDGE_MAP_INDEX_NAME}' not found.")
+    print(f"⚙️ Creating Knowledge Map index '{KNOWLEDGE_MAP_INDEX_NAME}'")
+    pc.create_index(
+        name=KNOWLEDGE_MAP_INDEX_NAME,
+        dimension=768,
+        metric="cosine",
+        spec=ServerlessSpec(cloud="aws", region="us-east-1")
+    )
 index_km = pc.Index(KNOWLEDGE_MAP_INDEX_NAME)
 
 # Ingestion constants
