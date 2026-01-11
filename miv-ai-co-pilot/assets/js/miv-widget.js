@@ -36,6 +36,11 @@
     let historyStack = [];
     let futureStack = [];
 
+    // Track whether we're resizing programmatically (so we don't accidentally
+    // persist bogus sizes like 0x0 on refresh/pagehide when the chat is closed).
+    let isHandleResizing = false;
+    let suppressSizeSave = false;
+
     /* -----------------------------
        Temp UI tracking
     ----------------------------- */
@@ -158,12 +163,29 @@
         quickWrap.style.webkitOverflowScrolling = "touch";
     }
 
-    // Observe chatWindow resizes (works with your drag resize + saved sizes)
+    // Observe chatWindow resizes (works with your drag resize + native CSS resize)
+    // 1) keep quickWrap sized correctly
+    // 2) persist the new size so refresh restores it
+    let mivSaveSizeT = null;
     if (typeof ResizeObserver !== "undefined") {
-        const ro = new ResizeObserver(() => adjustQuickWrapScroll());
+        const ro = new ResizeObserver(() => {
+            adjustQuickWrapScroll();
+
+            // Persist only when the chat is open, and avoid saving during programmatic resizes.
+            if (!chatWindow.classList.contains("miv-chat-window--open")) return;
+            if (suppressSizeSave || isHandleResizing) return;
+
+            if (mivSaveSizeT) clearTimeout(mivSaveSizeT);
+            mivSaveSizeT = setTimeout(() => saveSize(), 150);
+        });
         if (chatWindow) ro.observe(chatWindow);
     } else {
-        window.addEventListener("resize", adjustQuickWrapScroll);
+        window.addEventListener("resize", () => {
+            adjustQuickWrapScroll();
+            if (chatWindow && chatWindow.classList.contains("miv-chat-window--open")) {
+                saveSize();
+            }
+        });
     }
 
     /* -----------------------------
@@ -176,11 +198,13 @@
     }
 
     function getMaxW() {
-        return Math.floor(window.innerWidth * 0.92);
+        //  match CSS calc(100vw - 3rem) (1.5rem left + 1.5rem right)
+        return Math.max(360, Math.floor(window.innerWidth - 48));
     }
-
+    
     function getMaxH() {
-        return Math.floor(window.innerHeight * 0.8);
+        // allow it to reach near the top: calc(100vh - 3rem)
+        return Math.max(360, Math.floor(window.innerHeight - 48));
     }
 
     function applySavedSize() {
@@ -192,12 +216,40 @@
             const w = parsed && typeof parsed.w === "number" ? parsed.w : null;
             const h = parsed && typeof parsed.h === "number" ? parsed.h : null;
 
+            suppressSizeSave = true;
             if (w != null) chatWindow.style.width = clamp(w, 360, getMaxW()) + "px";
             if (h != null) chatWindow.style.height = clamp(h, 360, getMaxH()) + "px";
+            suppressSizeSave = false;
         } catch {
             // ignore
         }
     }
+
+    function hasSavedSize() {
+        try {
+            const raw = localStorage.getItem(SIZE_KEY);
+            if (!raw) return false;
+            const parsed = JSON.parse(raw);
+            return parsed && typeof parsed.w === "number" && typeof parsed.h === "number";
+        } catch {
+            return false;
+        }
+    }
+    
+    function applyDefaultSizeIfNone() {
+        if (!chatWindow) return;
+        if (hasSavedSize()) return;
+    
+        //  sensible first-open size
+        const defaultW = clamp(560, 360, getMaxW());
+        const defaultH = clamp(640, 360, getMaxH());
+    
+        suppressSizeSave = true;
+        chatWindow.style.width = defaultW + "px";
+        chatWindow.style.height = defaultH + "px";
+        suppressSizeSave = false;
+    }
+    
 
     /* -----------------------------
    Clamp chat size to viewport
@@ -229,12 +281,25 @@
 
     function saveSize() {
         try {
+            if (!chatWindow || suppressSizeSave) return;
+
+            // Prefer explicit styles (works even if widget is temporarily hidden)
+            const wStyle = parseFloat(chatWindow.style.width);
+            const hStyle = parseFloat(chatWindow.style.height);
+
             const rect = chatWindow.getBoundingClientRect();
+            const w = Number.isFinite(wStyle) && wStyle > 0 ? wStyle : rect.width;
+            const h = Number.isFinite(hStyle) && hStyle > 0 ? hStyle : rect.height;
+
+            // Guard: don't overwrite saved size with 0x0 or tiny values (happens on refresh
+            // if pagehide fires while chat is closed / display:none).
+            if (!(w > 100 && h > 100)) return;
+
             localStorage.setItem(
                 SIZE_KEY,
                 JSON.stringify({
-                    w: Math.round(rect.width),
-                    h: Math.round(rect.height)
+                    w: Math.round(w),
+                    h: Math.round(h)
                 })
             );
         } catch {
@@ -255,6 +320,8 @@
             if (e.button !== undefined && e.button !== 0) return;
 
             resizing = true;
+            isHandleResizing = true;
+            isHandleResizing = true;
             const pt = e.touches ? e.touches[0] : e;
 
             const rect = chatWindow.getBoundingClientRect();
@@ -295,6 +362,8 @@
         function onUp(e) {
             if (!resizing) return;
             resizing = false;
+            isHandleResizing = false;
+            isHandleResizing = false;
 
             document.removeEventListener("mousemove", onMove);
             document.removeEventListener("mouseup", onUp);
@@ -308,6 +377,27 @@
 
         resizeHandle.addEventListener("mousedown", onDown);
         resizeHandle.addEventListener("touchstart", onDown, { passive: false });
+    })();
+
+    /* -----------------------------
+       Persist size when user uses native CSS resize handle (bottom-right)
+       and prevent losing size on refresh.
+    ----------------------------- */
+    (function observeSizeChanges() {
+        if (!chatWindow || typeof ResizeObserver === "undefined") return;
+
+        let t = null;
+        const ro = new ResizeObserver(() => {
+            if (!isChatOpen()) return;
+            if (suppressSizeSave) return;
+            // During our own drag-resize, we already save on mouseup.
+            if (isHandleResizing) return;
+
+            if (t) clearTimeout(t);
+            t = setTimeout(() => saveSize(), 150);
+        });
+
+        ro.observe(chatWindow);
     })();
 
     /* -----------------------------
@@ -446,13 +536,56 @@
         if (!statesEqual(currentState, state)) {
             const hasCurrent = Boolean(currentState && (currentState.intent || currentState.message));
             if (hasCurrent) {
-                historyStack.push({ ...currentState });
+                historyStack.push(captureNavEntry());
             }
         }
         currentState = state;
         futureStack = [];
         updateNavigationButtons();
     }
+
+    function captureNavEntry() {
+        return {
+            state: { ...currentState },
+            history: loadHistory(),
+            hasAskedQuestion,
+            intent
+        };
+    }
+
+    function restoreNavEntry(entry) {
+        if (!entry) return;
+    
+        const restoredHistory = Array.isArray(entry.history) ? entry.history : [];
+    
+        // Restore stored chat history (localStorage) and repaint messages
+        saveHistory(restoredHistory);
+        messagesEl.innerHTML = "";
+        restoredHistory.forEach((m) => addMessage(m.role, m.text, { skipSave: true }));
+    
+        const hasUserMessage = restoredHistory.some((m) => m.role === "user");
+    
+        hasAskedQuestion = hasUserMessage;
+        intent = entry.intent || null;
+        currentState = entry.state || { intent: null, message: null };
+    
+        // KEY FIX:
+        // Only render the quick UI + helper message when we are in a "pre-chat" state.
+        // If the snapshot already includes a user chat, do NOT inject helper text.
+        if (!hasUserMessage) {
+            renderState(currentState);
+        } else {
+            // Ensure quick UI stays hidden and no temp helper messages linger
+            removeTempMessages();
+            quickWrap.style.display = "none";
+        }
+    
+        updateNavigationButtons();
+    
+        // Ensure the user can scroll to the end of long responses.
+        messagesEl.scrollTop = messagesEl.scrollHeight;
+    }
+    
 
     /* -----------------------------
        Quick questions UI helpers
@@ -487,7 +620,7 @@
 
             btn.addEventListener("click", () => {
                 removeTempMessages();
-                historyStack.push({ ...currentState });
+                historyStack.push(captureNavEntry());
 
                 const newState = { intent: cat.key, message: null };
                 currentState = newState;
@@ -519,7 +652,11 @@
                 input.value = "";
 
                 const newState = { intent, message: q };
-                navigateTo(newState);
+                // Capture full chat snapshot BEFORE we change anything,
+                // so Back returns the entire chat (not just the chips).
+                historyStack.push(captureNavEntry());
+                currentState = newState;
+                futureStack = [];
                 updateNavigationButtons();
 
                 hasAskedQuestion = true;
@@ -736,8 +873,13 @@
     }
 
     function openChat() {
+        // If no saved size exists (fresh install), apply a sensible default
+        applyDefaultSizeIfNone();
         // Apply saved size each time the chat opens
         applySavedSize();
+
+        // Ensure saved size never exceeds current viewport (and never collapses)
+        clampChatToViewport({ persist: false });
 
         chatWindow.classList.add("miv-chat-window--open");
         chatWindow.setAttribute("aria-hidden", "false");
@@ -776,12 +918,18 @@
         if (!text || isLoading) return;
         isLoading = true;
         quickWrap.style.display = "none";
+
+        // Capture full chat snapshot BEFORE we append messages,
+        // so Back returns the entire chat view.
+        if (!opts.skipNavigate) {
+            historyStack.push(captureNavEntry());
+            currentState = { intent, message: text };
+            futureStack = [];
+            updateNavigationButtons();
+        }
+
         addMessage("user", text);
         addTypingIndicator();
-
-        if (!opts.skipNavigate) {
-            navigateTo({ intent, message: text });
-        }
 
         try {
             const res = await fetch(backendUrl + "/chat", {
@@ -867,21 +1015,17 @@
     backBtn.addEventListener("click", () => {
         if (historyStack.length === 0) return;
 
-        futureStack.push({ ...currentState });
-        const prevState = historyStack.pop();
-        currentState = prevState;
-
-        renderState(prevState); // renderState now shows quick UI properly
+        futureStack.push(captureNavEntry());
+        const prev = historyStack.pop();
+        restoreNavEntry(prev);
     });
 
     forwardBtn.addEventListener("click", () => {
         if (futureStack.length === 0) return;
 
-        historyStack.push({ ...currentState });
-        const nextState = futureStack.pop();
-        currentState = nextState;
-
-        renderState(nextState); // renderState now shows quick UI properly
+        historyStack.push(captureNavEntry());
+        const next = futureStack.pop();
+        restoreNavEntry(next);
     });
 
     form.addEventListener("submit", (e) => {
@@ -893,7 +1037,8 @@
     });
 
     window.addEventListener("pagehide", () => {
-        saveSize();
+        // Avoid overwriting saved size with 0x0 when the chat is closed
+        if (isChatOpen()) saveSize();
     });
 
         /* -----------------------------
@@ -925,6 +1070,9 @@
 
     // Restore saved size immediately on page load
     applySavedSize();
+
+    // Clamp immediately on load too (prevents saved size being larger than viewport)
+    clampChatToViewport({ persist: false });
 
     applyFontScale();
     applyContrast();
