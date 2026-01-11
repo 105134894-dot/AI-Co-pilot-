@@ -187,6 +187,71 @@
         }
     });
 
+    // Knowledge Map Upload Logic
+    const kmForm = document.getElementById("miv-km-upload-form");
+    if (kmForm) {
+        const kmFileInput = document.getElementById("miv_km_file");
+        const kmBtn = document.getElementById("miv-km-upload-btn");
+
+        const getKmProgressWrap = () => document.getElementById("miv-progress-wrap");
+        const getKmProgressBar = () => document.getElementById("miv-progress-bar");
+        const getKmStatusEl = () => document.getElementById("miv-status");
+        const getKmTableBody = () => document.getElementById("miv-km-files-tbody");
+
+        function setKmStatus(msg) {
+            const el = getKmStatusEl();
+            if (el) el.innerHTML = msg || "";
+        }
+
+        kmForm.addEventListener("submit", async function (e) {
+            e.preventDefault();
+
+            const file = kmFileInput.files && kmFileInput.files[0];
+            if (!file) {
+                setKmStatus("Please choose a file first.");
+                return;
+            }
+
+            const progressWrap = getKmProgressWrap();
+            const progressBar = getKmProgressBar();
+
+            if (progressWrap) progressWrap.style.display = "block";
+            if (progressBar) progressBar.style.width = "0%";
+            setKmStatus("Uploading & Processing... (This may take a minute)");
+
+            if (kmBtn) kmBtn.disabled = true;
+
+            const fd = new FormData();
+            fd.append("action", "miv_km_upload");
+            fd.append("nonce", MIV_ADMIN.nonce);
+            fd.append("miv_km_file", file);
+
+            try {
+                const res = await fetch(MIV_ADMIN.ajaxUrl, {
+                    method: "POST",
+                    body: fd,
+                });
+
+                const data = await res.json();
+
+                if (data.success) {
+                    if (progressBar) progressBar.style.width = "100%";
+                    setKmStatus('<span style="color:green;">Knowledge Map uploaded successfully ✅</span>');
+                    kmFileInput.value = "";
+                } else {
+                    setKmStatus('<span style="color:red;">' + (data.message || "Upload failed.") + '</span>');
+                    if (progressBar) progressBar.style.width = "0%";
+                }
+            } catch (err) {
+                console.error(err);
+                setKmStatus('<span style="color:red;">Upload failed due to a network error.</span>');
+                if (progressBar) progressBar.style.width = "0%";
+            } finally {
+                if (kmBtn) kmBtn.disabled = false;
+            }
+        });
+    }
+
     // Initial Load
     refreshList();
 })();

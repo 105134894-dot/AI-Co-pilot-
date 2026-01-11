@@ -90,8 +90,8 @@ function miv_get_backend_url()
     $url = get_option('miv_backend_url', '');
 
     // SINGLE SOURCE OF TRUTH: Change this one line to switch environments
-    if (!$url) $url = 'https://miv-copilot-backend-49945271860.us-east1.run.app'; // Production (default)
-    // if (!$url) $url = 'http://localhost:8000'; // Uncomment for local development
+    // if (!$url) $url = 'https://miv-copilot-backend-49945271860.us-east1.run.app'; // Production (default)
+    if (!$url) $url = 'http://localhost:8000'; // Uncomment for local development
 
     return rtrim($url, '/');
 }
@@ -166,6 +166,11 @@ function miv_render_admin_page()
                 class="nav-tab <?php echo $tab === 'kb' ? 'nav-tab-active' : ''; ?>">
                 Knowledge Base
             </a>
+            <a
+                href="<?php echo esc_url(admin_url('admin.php?page=miv-ai-copilot&tab=km')); ?>"
+                class="nav-tab <?php echo $tab === 'km' ? 'nav-tab-active' : ''; ?>">
+                Knowledge Map
+            </a>
         </h2>
 
         <?php if ($tab === 'settings'): ?>
@@ -178,7 +183,7 @@ function miv_render_admin_page()
 
                     <div class="miv-api-form-group">
                         <label class="miv-api-label">Backend URL</label>
-                        <input class="miv-api-input" type="url" name="miv_backend_url" value="<?php echo esc_attr($backend_url); ?>"placeholder="https://..." />
+                        <input class="miv-api-input" type="url" name="miv_backend_url" value="<?php echo esc_attr($backend_url); ?>" placeholder="https://..." />
                         <p class="description">
                             Enter your backend server URL (e.g., Cloud Run or <code>http://localhost:8000</code>).
                             <br>Leave empty to use the default Cloud server.
@@ -187,7 +192,6 @@ function miv_render_admin_page()
 
                     <div class="miv-api-form-group">
                         <label class="miv-api-label" for="miv_default_prompt">System Prompt</label>
-                        <!-- Editable textarea -->
                         <textarea
                             id="miv_default_prompt"
                             name="miv_default_prompt"
@@ -204,10 +208,10 @@ function miv_render_admin_page()
                 </div>
             </form>
 
-        <?php else: ?>
+        <?php elseif ($tab === 'kb'): ?>
 
+            <!-- Knowledge Base upload section -->
             <div class="miv-panel">
-
                 <div class="miv-kb-upload-section">
                     <div class="miv-kb-upload-title">Upload a file to your Knowledge Base</div>
 
@@ -243,7 +247,47 @@ function miv_render_admin_page()
                     </thead>
                     <tbody id="miv-kb-files-tbody"></tbody>
                 </table>
+            </div>
 
+        <?php elseif ($tab === 'km'): ?>
+
+            <!-- Knowledge Map upload section -->
+            <div class="miv-panel">
+                <div class="miv-km-upload-section">
+                    <div class="miv-kb-upload-title">Upload a file to your Knowledge Map</div>
+
+                    <form id="miv-km-upload-form">
+                        <div class="miv-kb-upload-row">
+                            <input
+                                id="miv_km_file"
+                                class="miv-km-file-input"
+                                type="file"
+                                name="miv_km_file"
+                                accept=".pdf,.doc,.docx,.txt,.md,.json" />
+                            <button id="miv-km-upload-btn" class="miv-km-upload-btn" type="submit">
+                                Upload
+                            </button>
+                        </div>
+
+                        <div id="miv-progress-wrap" style="display:none; margin-top:16px;">
+                            <div style="background:#e9ecef; border-radius:999px; overflow:hidden;">
+                                <div id="miv-progress-bar" style="height:10px; width:0%; background:#6f42c1;"></div>
+                            </div>
+                        </div>
+
+                        <div id="miv-status" style="margin-top:10px; color:#495057;"></div>
+                    </form>
+                </div>
+
+                <table class="miv-km-table">
+                    <thead>
+                        <tr>
+                            <th>File</th>
+                            <th>Uploaded</th>
+                        </tr>
+                    </thead>
+                    <tbody id="miv-km-files-tbody"></tbody>
+                </table>
             </div>
 
         <?php endif; ?>
@@ -346,4 +390,44 @@ function miv_kb_upload()
     } else {
         wp_send_json_error(array('message' => 'Ingestion failed: ' . $response));
     }
+}
+
+/**
+ * AJAX endpoint for Knowledge Map upload
+ */
+add_action('wp_ajax_miv_km_upload', 'miv_km_upload');
+function miv_km_upload()
+{
+    if (!current_user_can('manage_options')) {
+        wp_send_json_error(['message' => 'Forbidden']);
+    }
+    check_ajax_referer('miv_admin_nonce', 'nonce');
+
+    if (empty($_FILES['miv_km_file']) || $_FILES['miv_km_file']['error'] !== UPLOAD_ERR_OK) {
+        wp_send_json_error(['message' => 'File upload failed.']);
+    }
+
+    $file = $_FILES['miv_km_file'];
+    $backend_url = miv_get_backend_url();
+
+    // Send the file to the backend server
+    $response = wp_remote_post($backend_url . '/upload-knowledge-map', [
+        'timeout' => 60,
+        'body'    => [
+            'file' => curl_file_create($file['tmp_name'], $file['type'], $file['name']),
+        ],
+    ]);
+
+    if (is_wp_error($response)) {
+        wp_send_json_error(['message' => 'Could not connect to backend: ' . $response->get_error_message()]);
+    }
+
+    $body = wp_remote_retrieve_body($response);
+    $data = json_decode($body, true);
+
+    if (json_last_error() !== JSON_ERROR_NONE || empty($data['success'])) {
+        wp_send_json_error(['message' => 'Backend error: ' . ($data['message'] ?? 'Unknown error')]);
+    }
+
+    wp_send_json_success(['message' => 'Knowledge Map uploaded successfully!']);
 }
