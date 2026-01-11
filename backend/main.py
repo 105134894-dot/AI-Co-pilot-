@@ -278,38 +278,33 @@ async def ingest_endpoint(file: UploadFile = File(...), target_index: str = "kb"
                 topic = entry.get("topic", f"topic-{i}")
                 content = entry.get("content", "")
 
-                # Include metadata references
-                user_intent = entry.get("user_intent", "")
-                tool_name = entry.get("tool_name", "")
-                url = entry.get("URL", "")
-                in_database = entry.get("in_database", "")
-                text_to_embed = entry.get("text_to_embed", "")
-
                 paragraph_chunks.append({
-                    "text": content,
+                    "text": content, 
                     "heading": topic,
                     "paragraph_index": i,
-                    "metadata": {
-                        "user_intent": user_intent,
-                        "tool_name": tool_name,
-                        "URL": url,
-                        "in_database": in_database,
-                        "text_to_embed": text_to_embed
                     }
-                })
-
+                )
+                
         vectors_to_upsert = []
         for chunk_info in paragraph_chunks:
             text = chunk_info['text']
             heading = chunk_info['heading']
             para_idx = chunk_info['paragraph_index']
+            metadata = chunk_info.get('metadata', {})
 
             # Generate embedding
             embedding_response = client.models.embed_content(model=EMBED_MODEL_NAME, contents=text)
             vector = embedding_response.embeddings[0].values
             chunk_id = f"{filename}-para-{para_idx}"
 
-            vectors_to_upsert.append((chunk_id, vector, {"text": text, "source": filename, "heading": heading}))
+            # Include metadata in the upsert
+            vectors_to_upsert.append((chunk_id, vector, {
+                "text": metadata.get("text_to_embed", text),
+                "source": filename,
+                "heading": metadata.get("user_intent", heading),
+                "tool_name": metadata.get("tool_name", ""),
+                "url": metadata.get("url", "")
+            }))
 
             if len(vectors_to_upsert) >= BATCH_SIZE:
                 index_target.upsert(vectors=vectors_to_upsert)
