@@ -193,9 +193,9 @@
         const kmFileInput = document.getElementById("miv_km_file");
         const kmBtn = document.getElementById("miv-km-upload-btn");
 
-        const getKmProgressWrap = () => document.getElementById("miv-progress-wrap");
-        const getKmProgressBar = () => document.getElementById("miv-progress-bar");
-        const getKmStatusEl = () => document.getElementById("miv-status");
+        const getKmProgressWrap = () => document.getElementById("miv-km-progress-wrap");
+        const getKmProgressBar = () => document.getElementById("miv-km-progress-bar");
+        const getKmStatusEl = () => document.getElementById("miv-km-status");
         const getKmTableBody = () => document.getElementById("miv-km-files-tbody");
 
         function setKmStatus(msg) {
@@ -239,11 +239,12 @@
                     setKmStatus('<span style="color:green;">Knowledge Map uploaded successfully ✅</span>');
                     kmFileInput.value = "";
                 } else {
+                    console.error("Backend Error:", data);
                     setKmStatus('<span style="color:red;">' + (data.message || "Upload failed.") + '</span>');
                     if (progressBar) progressBar.style.width = "0%";
                 }
             } catch (err) {
-                console.error(err);
+                console.error("Network or Parsing Error:", err);
                 setKmStatus('<span style="color:red;">Upload failed due to a network error.</span>');
                 if (progressBar) progressBar.style.width = "0%";
             } finally {

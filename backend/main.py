@@ -271,12 +271,32 @@ async def ingest_endpoint(file: UploadFile = File(...), target_index: str = "kb"
             paragraphs = extract_docx_paragraphs_with_headings(file_bytes)
             paragraph_chunks = merge_paragraphs_into_chunks(paragraphs)
         elif filename.lower().endswith('.json'):
+            
             # JSON ingestion for Knowledge Map
             km_data = json.loads(file_bytes)
             for i, entry in enumerate(km_data):
                 topic = entry.get("topic", f"topic-{i}")
                 content = entry.get("content", "")
-                paragraph_chunks.append({"text": content, "heading": topic, "paragraph_index": i})
+
+                # Include metadata references
+                user_intent = entry.get("user_intent", "")
+                tool_name = entry.get("tool_name", "")
+                url = entry.get("URL", "")
+                in_database = entry.get("in_database", "")
+                text_to_embed = entry.get("text_to_embed", "")
+
+                paragraph_chunks.append({
+                    "text": content,
+                    "heading": topic,
+                    "paragraph_index": i,
+                    "metadata": {
+                        "user_intent": user_intent,
+                        "tool_name": tool_name,
+                        "URL": url,
+                        "in_database": in_database,
+                        "text_to_embed": text_to_embed
+                    }
+                })
 
         vectors_to_upsert = []
         for chunk_info in paragraph_chunks:
@@ -460,4 +480,21 @@ async def list_documents():
         return {"success": True, "documents": documents, "total_chunks_sampled": len(results.get('matches', []))}
     except Exception as e:
         print(f"❌ Error listing documents: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+# -----------------------
+# List Knowledge Maps Endpoint
+# ----------------------- 
+@app.get("/list-knowledge-maps")
+async def list_km():
+    try:
+        results = index_km.query(vector=[0.0]*768, top_k=1000, include_metadata=True)
+        sources = set()
+        for match in results.get('matches', []):
+            metadata = match.get('metadata', {})
+            if 'source' in metadata:
+                sources.add(metadata['source'])
+        km_docs = [{"filename": src} for src in sorted(sources)]
+        return {"success": True, "knowledge_maps": km_docs}
+    except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

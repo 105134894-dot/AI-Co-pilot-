@@ -275,7 +275,7 @@ function miv_render_admin_page()
                             </div>
                         </div>
 
-                        <div id="miv-status" style="margin-top:10px; color:#495057;"></div>
+                        <div id="miv-km-status" style="margin-top:10px; color:#495057;"></div>
                     </form>
                 </div>
 
@@ -392,9 +392,8 @@ function miv_kb_upload()
     }
 }
 
-/**
- * AJAX endpoint for Knowledge Map upload
- */
+// Knowledge Map upload AJAX handler
+
 add_action('wp_ajax_miv_km_upload', 'miv_km_upload');
 function miv_km_upload()
 {
@@ -410,24 +409,37 @@ function miv_km_upload()
     $file = $_FILES['miv_km_file'];
     $backend_url = miv_get_backend_url();
 
-    // Send the file to the backend server
-    $response = wp_remote_post($backend_url . '/upload-knowledge-map', [
-        'timeout' => 60,
-        'body'    => [
-            'file' => curl_file_create($file['tmp_name'], $file['type'], $file['name']),
-        ],
-    ]);
+    // Prepare CURL request to Python backend
+    $ch = curl_init();
 
-    if (is_wp_error($response)) {
-        wp_send_json_error(['message' => 'Could not connect to backend: ' . $response->get_error_message()]);
+    $cfile = curl_file_create($file['tmp_name'], $file['type'], $file['name']);
+    $data = [
+        'file' => $cfile,
+        'target_index' => 'km'
+    ];
+
+    curl_setopt($ch, CURLOPT_URL, $backend_url . '/ingest');  // ✅ POST to /ingest
+    curl_setopt($ch, CURLOPT_POST, 1);
+    curl_setopt($ch, CURLOPT_POSTFIELDS, $data);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_TIMEOUT, 300);
+
+    $response = curl_exec($ch);
+    $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    $error_msg = curl_error($ch);
+    curl_close($ch);
+
+    if ($http_code !== 200) {
+        wp_send_json_error([
+            'message' => 'Backend Error (' . $http_code . '): ' . ($error_msg ?: $response)
+        ]);
     }
 
-    $body = wp_remote_retrieve_body($response);
-    $data = json_decode($body, true);
+    $json_response = json_decode($response, true);
 
-    if (json_last_error() !== JSON_ERROR_NONE || empty($data['success'])) {
-        wp_send_json_error(['message' => 'Backend error: ' . ($data['message'] ?? 'Unknown error')]);
+    if (isset($json_response['success']) && $json_response['success']) {
+        wp_send_json_success($json_response);
+    } else {
+        wp_send_json_error(['message' => 'Ingestion failed: ' . $response]);
     }
-
-    wp_send_json_success(['message' => 'Knowledge Map uploaded successfully!']);
 }
