@@ -90,8 +90,8 @@ function miv_get_backend_url()
     $url = get_option('miv_backend_url', '');
 
     // SINGLE SOURCE OF TRUTH: Change this one line to switch environments
-    // if (!$url) $url = 'https://miv-copilot-backend-49945271860.us-east1.run.app'; // Production (default)
-    if (!$url) $url = 'http://localhost:8000'; // Uncomment for local development
+    if (!$url) $url = 'https://miv-copilot-backend-49945271860.us-east1.run.app'; // Production (default)
+    //if (!$url) $url = 'http://localhost:8000'; // Uncomment for local development
 
     return rtrim($url, '/');
 }
