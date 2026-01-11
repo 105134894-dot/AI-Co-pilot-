@@ -118,28 +118,18 @@
     display: flex;
 }
 
-/* Top-left draggable resize handle (works with JS) */
+/* Invisible resize hit area – no visual clutter */
 .miv-resize-handle {
     position: absolute;
-    top: 8px;
-    left: 8px;
-    width: 22px;
-    height: 22px;
-    z-index: 20; /* above header background */
+    top: 0;
+    left: 0;
+    width: 18px;
+    height: 18px;
     cursor: nwse-resize;
+    z-index: 20;
     background: transparent;
 }
 
-/* corner grip visual */
-.miv-resize-handle::before {
-    content: "";
-    position: absolute;
-    inset: 0;
-    border-top: 2px solid rgba(255, 255, 255, 0.65);
-    border-left: 2px solid rgba(255, 255, 255, 0.65);
-    border-top-left-radius: 4px;
-    opacity: 0.85;
-}
 
 .miv-chat-window:hover .miv-resize-handle::before {
     opacity: 1;
