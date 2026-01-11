@@ -73,12 +73,32 @@ function miv_mask_secret($value)
 }
 
 /**
+ * DEFAULT VALUES
+ */
+define('MIV_DEFAULT_BACKEND_URL', 'https://miv-copilot-backend-49945271860.us-east1.run.app');
+define('MIV_DEFAULT_SYSTEM_PROMPT', "You are an AI Co-Pilot for accessibility and inclusive design, specifically supporting Mekong Inclusive Ventures (MIV) practitioners, educators, and Entrepreneur Support Organizations (ESOs).
+
+Provide clear, concise, and actionable advice based on the provided context.
+Focus on accuracy, brevity, and professionalism.
+
+Structure responses as:
+- Direct answer first
+- Step-by-step guidance when needed
+- Relevant tool links or examples
+- Bullet points for clarity
+- Provide URL links for all relevant sources.
+
+Do not use overly friendly or casual language like \"I'd be happy to help\", \"Sure thing!\", or excessive exclamation marks.
+
+If the context does not contain the answer, say, \"I don't have specific information on this in the MIV knowledge base, but here is general best practice,\" followed by helpful guidance.");
+
+/**
  * SINGLE SOURCE OF TRUTH: Backend URL Configuration
  */
 function miv_get_backend_url()
 {
-    $url = get_option('miv_backend_url', '');
-    if (!$url) $url = 'https://miv-copilot-backend-49945271860.us-east1.run.app';
+    $url = get_option('miv_backend_url', MIV_DEFAULT_BACKEND_URL);
+    if (!$url) $url = MIV_DEFAULT_BACKEND_URL;
     return rtrim($url, '/');
 }
 
@@ -104,25 +124,22 @@ function miv_render_admin_page()
         echo '<div class="notice notice-success is-dismissible"><p>Settings saved successfully!</p></div>';
     }
 
-    $backend_url = miv_get_backend_url();
+    // Handle reset backend URL
+    if ($tab === 'settings' && isset($_POST['miv_reset_backend_url'])) {
+        check_admin_referer('miv_settings_save', 'miv_settings_nonce');
+        update_option('miv_backend_url', MIV_DEFAULT_BACKEND_URL);
+        echo '<div class="notice notice-success is-dismissible"><p>Backend URL reset to default!</p></div>';
+    }
 
-    $default_prompt = get_option(
-        'miv_default_prompt',
-        "You are an AI Co-Pilot for accessibility and inclusive design, \n"
-            . "specifically supporting Mekong Inclusive Ventures (MIV) practitioners, educators, and \n"
-            . "Entrepreneur Support Organizations (ESOs).\n\n"
-            . "Provide clear, concise, and actionable advice based on the provided context.\n\n"
-            . "Structure responses as:\n"
-            . "- Direct answer first\n"
-            . "- Step-by-step guidance when needed\n"
-            . "- Relevant tool links or examples\n"
-            . "- Bullet points for clarity\n\n"
-            . "Do not use overly friendly or casual language like \"I'd be happy to help\", \"Sure thing!\", or excessive exclamation marks.\n\n"
-            . "If the context does not contain the answer, say: \"I don't have specific information on this in the MIV knowledge base, but here is general best practice:\" followed by helpful guidance.\n\n"
-            . "Focus on accuracy, brevity, and professionalism.\n\n"
-            . "If the context doesn't contain the answer, say you don't know based on the MIV knowledge base, \n"
-            . "but provide general best practices if applicable."
-    );
+    // Handle reset system prompt
+    if ($tab === 'settings' && isset($_POST['miv_reset_system_prompt'])) {
+        check_admin_referer('miv_settings_save', 'miv_settings_nonce');
+        update_option('miv_default_prompt', MIV_DEFAULT_SYSTEM_PROMPT);
+        echo '<div class="notice notice-success is-dismissible"><p>System Prompt reset to default!</p></div>';
+    }
+
+    $backend_url = miv_get_backend_url();
+    $default_prompt = get_option('miv_default_prompt', MIV_DEFAULT_SYSTEM_PROMPT);
 
     $logo_url = plugins_url('img/miv-logo.jpg', dirname(__FILE__));
 ?>
@@ -164,16 +181,25 @@ function miv_render_admin_page()
                 <div class="miv-panel miv-api-settings">
 
                     <div class="miv-api-form-group">
-                        <label class="miv-api-label">Backend URL</label>
+                        <div class="miv-label-with-reset">
+                            <label class="miv-api-label">Backend URL</label>
+                            <button type="submit" name="miv_reset_backend_url" class="miv-reset-btn">
+                                Reset to Default
+                            </button>
+                        </div>
                         <input class="miv-api-input" type="url" name="miv_backend_url" value="<?php echo esc_attr($backend_url); ?>" placeholder="https://..." />
                         <p class="description">
                             Enter your backend server URL (e.g., Cloud Run or <code>http://localhost:8000</code>).
-                            <br>Leave empty to use the default Cloud server.
                         </p>
                     </div>
 
                     <div class="miv-api-form-group">
-                        <label class="miv-api-label" for="miv_default_prompt">System Prompt</label>
+                        <div class="miv-label-with-reset">
+                            <label class="miv-api-label" for="miv_default_prompt">System Prompt</label>
+                            <button type="submit" name="miv_reset_system_prompt" class="miv-reset-btn">
+                                Reset to Default
+                            </button>
+                        </div>
                         <textarea
                             id="miv_default_prompt"
                             name="miv_default_prompt"

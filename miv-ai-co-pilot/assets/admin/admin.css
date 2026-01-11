@@ -104,12 +104,36 @@ body.toplevel_page_miv-ai-copilot {
   margin-bottom: 32px;
 }
 
+.miv-label-with-reset {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
 .miv-api-label {
   display: block;
   font-size: 18px;
   font-weight: 600;
   color: var(--miv-text-dark);
-  margin-bottom: 12px;
+  margin: 0;
+}
+
+.miv-reset-btn {
+  background: transparent;
+  color: var(--miv-accent);
+  border: 1px solid var(--miv-accent);
+  padding: 6px 16px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.miv-reset-btn:hover {
+  background: var(--miv-accent);
+  color: #ffffff;
 }
 
 .miv-api-input {
