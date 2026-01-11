@@ -511,7 +511,7 @@
     align-self: flex-start;
     background: var(--miv-assistant-bubble);
     color: var(--miv-assistant-text);
-    padding: 0.55rem 0.75rem;
+    padding: 0.55rem 0.75rem 0.9rem;
     border-radius: 14px 14px 14px 4px;
     max-width: 95%;
 }
