@@ -296,16 +296,6 @@ async def ingest_endpoint(file: UploadFile = File(...), target_index: str = "kb"
                 data = json.loads(file_bytes)
                 paragraph_chunks_raw = [{"text": entry.get("content", ""), "heading": entry.get("topic")} for entry in data]
 
-             # Apply fallback heading
-            for i, chunk in enumerate(paragraph_chunks_raw):
-                text = chunk["text"]
-                # Use heading_level if detected, else fallback to first line
-                heading = chunk.get("heading_level") or text.split("\n")[0][:50] or "No Heading"
-                paragraph_chunks.append({
-                    "text": text,
-                    "heading": heading,
-                    "paragraph_index": i
-                })
 
 
         # =========================================================
@@ -463,7 +453,7 @@ async def chat_endpoint(req: ChatRequest):
             print("🔹 KM Retrieved:")
             for match in km_results['matches']:
                 metadata = match.get('metadata', {})
-                print("  - Heading:", metadata.get('heading'))
+                print("  - User Intent:", metadata.get('user_intent'))
                 print("  - Source:", metadata.get('source'))
                 print("  - Text preview:", metadata.get('text')[:150])
         else:
@@ -486,7 +476,6 @@ async def chat_endpoint(req: ChatRequest):
         print("🔹 KB Retrieved:")
         for match in kb_results['matches']:
             metadata = match.get('metadata', {})
-            print("  - Heading:", metadata.get('heading'))
             print("  - Source:", metadata.get('source'))
             print("  - Score:", match['score'])
             print("  - Text preview:", metadata.get('text')[:150])  
