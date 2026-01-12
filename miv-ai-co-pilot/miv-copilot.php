@@ -138,21 +138,23 @@ function miv_inject_copilot_widget()
                         class="miv-header-icon-btn"
                         id="miv-clear-chat-btn"
                         aria-label="Clear chat"
-                        title="Reset">
-                        ⟳
+                        title="Reset Settings">
+                        ↺
                     </button>
 
                     <button
                         class="miv-a11y-toggle"
                         id="miv-a11y-toggle"
-                        aria-label="Accessibility options">
+                        aria-label="Accessibility options"
+                        title="Change Accessibility Settings">
                         ♿
                     </button>
 
                     <button
                         class="miv-close-btn"
                         id="miv-close-btn"
-                        aria-label="Close chat">
+                        aria-label="Close chat"
+                        title="Close AI Chat">
                         ×
                     </button>
                 </div>
@@ -163,14 +165,16 @@ function miv_inject_copilot_widget()
                     <span>Accessibility Settings</span>
                     <button
                         id="miv-a11y-reset"
-                        aria-label="Reset accessibility settings">
+                        aria-label="Reset accessibility settings"
+                        title="Reset Accessibility Settings">
                         ↺
                     </button>
 
                     <button
                         class="miv-a11y-close"
                         id="miv-a11y-close"
-                        aria-label="Close accessibility panel">
+                        aria-label="Close accessibility panel"
+                        title="Close Accessibility Settings">
                         ×
                     </button>
                 </div>

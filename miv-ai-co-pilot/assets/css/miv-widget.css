@@ -79,16 +79,21 @@
     --miv-border-subtle: rgba(0, 0, 0, 0.08);
     --miv-font-scale: 1;
 
-    width: min(660px, 92vw);
 
-    /*  allow native resize as fallback (still bottom-right) */
+    width: min(640px, 95vw);
+    /*  NEW: sensible default height + allows it to reach near the top */
+    height: min(420px, calc(100vh - 3rem));
+
+    /* allow native resize as fallback (still bottom-right) */
     resize: both;
 
     /* bounds to keep it usable */
     min-width: 360px;
     min-height: 360px;
-    max-width: 92vw;
-    max-height: 80vh;
+
+    /*  UPDATED: allow it to grow to near full viewport */
+    max-width: calc(100vw - 3rem);
+    max-height: calc(100vh - 3rem);
 
     display: none;
     flex-direction: column;
@@ -97,7 +102,7 @@
     box-shadow: 0 20px 40px rgba(0, 0, 0, 0.35);
     overflow: hidden;
 
-    /*  needed so the handle can position inside the window */
+    /* needed so the handle can position inside the window */
     position: relative;
 
     color: #102329;
@@ -112,27 +117,16 @@
     display: flex;
 }
 
-/* Top-left draggable resize handle (works with JS) */
+/* Invisible resize hit area – no visual clutter */
 .miv-resize-handle {
     position: absolute;
-    top: 8px;
-    left: 8px;
-    width: 22px;
-    height: 22px;
-    z-index: 20; /* above header background */
+    top: 0;
+    left: 0;
+    width: 18px;
+    height: 18px;
     cursor: nwse-resize;
+    z-index: 20;
     background: transparent;
-}
-
-/* corner grip visual */
-.miv-resize-handle::before {
-    content: "";
-    position: absolute;
-    inset: 0;
-    border-top: 2px solid rgba(255, 255, 255, 0.65);
-    border-left: 2px solid rgba(255, 255, 255, 0.65);
-    border-top-left-radius: 4px;
-    opacity: 0.85;
 }
 
 .miv-chat-window:hover .miv-resize-handle::before {
@@ -475,11 +469,21 @@
 .miv-messages {
     background: var(--miv-body-bg);
     padding: 0.8rem 1rem;
+
+    /*  keeps the messages area as the scroll container */
     flex: 1;
+
+    /* FIX: CRITICAL for flex scroll containers (prevents “cut off at bottom”) */
+    min-height: 0;
+
     overflow-y: auto;
     scroll-behavior: smooth;
     display: flex;
     flex-direction: column;
+
+    /*  optional but recommended: keeps last message comfortably readable */
+    padding-bottom: 1.2rem;
+    scroll-padding-bottom: 72px;
 }
 
 /* ChatGPT-like blocks */
@@ -495,7 +499,7 @@
     align-self: flex-start;
     background: var(--miv-assistant-bubble);
     color: var(--miv-assistant-text);
-    padding: 0.55rem 0.75rem;
+    padding: 0.55rem 0.75rem 0.9rem;
     border-radius: 14px 14px 14px 4px;
     max-width: 95%;
 }
@@ -547,7 +551,8 @@
 /* Input row - FIX: Remove padding above input */
 .miv-input-row {
     background: var(--miv-input-bg);
-    padding: 0.4rem 0.9rem 0.7rem;
+    padding: 0.2rem 0.9rem 0.2rem;
+    height: 40px;
     border-top: 1px solid var(--miv-border-subtle);
     display: flex;
     gap: 0.5rem;
@@ -558,11 +563,12 @@
     flex: 1;
     border-radius: 999px;
     border: 1px solid var(--miv-border-subtle);
-    padding: 0.4rem 0.75rem;
+    padding: 0 0.75rem;
     background: inherit;
     color: inherit;
-    min-height: 40px;
-    line-height: 1.2;
+    min-height: 0;
+    height: 100%;
+    line-height: 40px;
     font-size: inherit;
     transition: border-color 0.2s ease;
 }
@@ -590,7 +596,8 @@
     padding: 0.4rem 0.8rem;
     font-size: inherit;
     cursor: pointer;
-    min-height: 40px;
+    min-height: 0;
+    height: 100%;
     transition: background 0.2s ease, transform 0.1s ease;
 }
 
@@ -620,17 +627,22 @@
 
     .miv-chat-window {
         width: min(100vw - 1.5rem, 420px);
+        height: min(85vh, 640px);
+        
         max-height: 85vh;
+        resize: none;
+        min-width: unset;
+        min-height: unset;
 
-        resize: none;      
-        min-width: unset;  
-        min-height: unset; 
+        /* keep the scroll fix consistent on mobile */
+        min-height: 0;
     }
 
     .miv-resize-handle {
-        display: none;     
+        display: none;
     }
 }
+
 @media (max-width: 600px) {
     .miv-widget-root {
         inset: auto 0.75rem 0.75rem auto;

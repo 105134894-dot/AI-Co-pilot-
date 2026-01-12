@@ -23,9 +23,8 @@ add_action('admin_menu', 'miv_register_admin_menu');
  */
 function miv_register_settings()
 {
-    // Keep only what the plugin actually uses in the WP admin UI
     register_setting('miv_ai_copilot_settings', 'miv_backend_url');
-    register_setting('miv_ai_copilot_settings', 'miv_default_prompt'); // Editable System Prompt
+    register_setting('miv_ai_copilot_settings', 'miv_default_prompt');
 }
 add_action('admin_init', 'miv_register_settings');
 
@@ -39,7 +38,6 @@ function miv_enqueue_admin_assets($hook)
     $plugin_url = plugin_dir_url(__FILE__);
     $plugin_dir = plugin_dir_path(__FILE__);
 
-    // Admin CSS (cache-busted)
     wp_enqueue_style(
         'miv-admin-css',
         $plugin_url . '../assets/admin/admin.css',
@@ -47,7 +45,6 @@ function miv_enqueue_admin_assets($hook)
         filemtime($plugin_dir . '../assets/admin/admin.css')
     );
 
-    // Admin JS (cache-busted)
     wp_enqueue_script(
         'miv-admin-js',
         $plugin_url . '../assets/admin/admin.js',
@@ -76,23 +73,32 @@ function miv_mask_secret($value)
 }
 
 /**
+ * DEFAULT VALUES
+ */
+define('MIV_DEFAULT_BACKEND_URL', 'https://miv-copilot-backend-49945271860.us-east1.run.app');
+define('MIV_DEFAULT_SYSTEM_PROMPT', "You are an AI Co-Pilot for accessibility and inclusive design, specifically supporting Mekong Inclusive Ventures (MIV) practitioners, educators, and Entrepreneur Support Organizations (ESOs).
+
+Provide clear, concise, and actionable advice based on the provided context.
+Focus on accuracy, brevity, and professionalism.
+
+Structure responses as:
+- Direct answer first
+- Step-by-step guidance when needed
+- Relevant tool links or examples
+- Bullet points for clarity
+- Provide URL links for all relevant sources.
+
+Do not use overly friendly or casual language like \"I'd be happy to help\", \"Sure thing!\", or excessive exclamation marks.
+
+If the context does not contain the answer, say, \"I don't have specific information on this in the MIV knowledge base, but here is general best practice,\" followed by helpful guidance.");
+
+/**
  * SINGLE SOURCE OF TRUTH: Backend URL Configuration
- * 
- * This function is used by:
- * - Frontend chatbot widget (via wp_localize_script in miv-copilot.php)
- * - Admin panel display (in miv_render_admin_page below)
- * - AJAX endpoints (miv_kb_list and miv_kb_upload)
- * 
- * To switch environments, change ONLY the fallback URL below.
  */
 function miv_get_backend_url()
 {
-    $url = get_option('miv_backend_url', '');
-
-    // SINGLE SOURCE OF TRUTH: Change this one line to switch environments
-    if (!$url) $url = 'https://miv-copilot-backend-49945271860.us-east1.run.app'; // Production (default)
-    //if (!$url) $url = 'http://localhost:8000'; // Uncomment for local development
-
+    $url = get_option('miv_backend_url', MIV_DEFAULT_BACKEND_URL);
+    if (!$url) $url = MIV_DEFAULT_BACKEND_URL;
     return rtrim($url, '/');
 }
 
@@ -109,37 +115,31 @@ function miv_render_admin_page()
     if ($tab === 'settings' && isset($_POST['miv_save_settings'])) {
         check_admin_referer('miv_settings_save', 'miv_settings_nonce');
 
-        // Save the system prompt
         $new_prompt = isset($_POST['miv_default_prompt']) ? wp_unslash($_POST['miv_default_prompt']) : '';
         update_option('miv_default_prompt', $new_prompt);
 
-        // Save the backend URL
         $new_url = isset($_POST['miv_backend_url']) ? sanitize_url($_POST['miv_backend_url']) : '';
         update_option('miv_backend_url', $new_url);
 
         echo '<div class="notice notice-success is-dismissible"><p>Settings saved successfully!</p></div>';
     }
 
-    //  Use centralized function
-    $backend_url = miv_get_backend_url();
+    // Handle reset backend URL
+    if ($tab === 'settings' && isset($_POST['miv_reset_backend_url'])) {
+        check_admin_referer('miv_settings_save', 'miv_settings_nonce');
+        update_option('miv_backend_url', MIV_DEFAULT_BACKEND_URL);
+        echo '<div class="notice notice-success is-dismissible"><p>Backend URL reset to default!</p></div>';
+    }
 
-    $default_prompt = get_option(
-        'miv_default_prompt',
-        "You are an AI Co-Pilot for accessibility and inclusive design, \n"
-            . "specifically supporting Mekong Inclusive Ventures (MIV) practitioners, educators, and \n"
-            . "Entrepreneur Support Organizations (ESOs).\n\n"
-            . "Provide clear, concise, and actionable advice based on the provided context.\n\n"
-            . "Structure responses as:\n"
-            . "- Direct answer first\n"
-            . "- Step-by-step guidance when needed\n"
-            . "- Relevant tool links or examples\n"
-            . "- Bullet points for clarity\n\n"
-            . "Do not use overly friendly or casual language like \"I'd be happy to help\", \"Sure thing!\", or excessive exclamation marks.\n\n"
-            . "If the context does not contain the answer, say: \"I don't have specific information on this in the MIV knowledge base, but here is general best practice:\" followed by helpful guidance.\n\n"
-            . "Focus on accuracy, brevity, and professionalism.\n\n"
-            . "If the context doesn't contain the answer, say you don't know based on the MIV knowledge base, \n"
-            . "but provide general best practices if applicable."
-    );
+    // Handle reset system prompt
+    if ($tab === 'settings' && isset($_POST['miv_reset_system_prompt'])) {
+        check_admin_referer('miv_settings_save', 'miv_settings_nonce');
+        update_option('miv_default_prompt', MIV_DEFAULT_SYSTEM_PROMPT);
+        echo '<div class="notice notice-success is-dismissible"><p>System Prompt reset to default!</p></div>';
+    }
+
+    $backend_url = miv_get_backend_url();
+    $default_prompt = get_option('miv_default_prompt', MIV_DEFAULT_SYSTEM_PROMPT);
 
     $logo_url = plugins_url('img/miv-logo.jpg', dirname(__FILE__));
 ?>
@@ -175,23 +175,31 @@ function miv_render_admin_page()
 
         <?php if ($tab === 'settings'): ?>
 
-            <!-- Now a real form that can be submitted -->
             <form method="post" action="">
                 <?php wp_nonce_field('miv_settings_save', 'miv_settings_nonce'); ?>
 
                 <div class="miv-panel miv-api-settings">
 
                     <div class="miv-api-form-group">
-                        <label class="miv-api-label">Backend URL</label>
+                        <div class="miv-label-with-reset">
+                            <label class="miv-api-label">Backend URL</label>
+                            <button type="submit" name="miv_reset_backend_url" class="miv-reset-btn">
+                                Reset to Default
+                            </button>
+                        </div>
                         <input class="miv-api-input" type="url" name="miv_backend_url" value="<?php echo esc_attr($backend_url); ?>" placeholder="https://..." />
                         <p class="description">
                             Enter your backend server URL (e.g., Cloud Run or <code>http://localhost:8000</code>).
-                            <br>Leave empty to use the default Cloud server.
                         </p>
                     </div>
 
                     <div class="miv-api-form-group">
-                        <label class="miv-api-label" for="miv_default_prompt">System Prompt</label>
+                        <div class="miv-label-with-reset">
+                            <label class="miv-api-label" for="miv_default_prompt">System Prompt</label>
+                            <button type="submit" name="miv_reset_system_prompt" class="miv-reset-btn">
+                                Reset to Default
+                            </button>
+                        </div>
                         <textarea
                             id="miv_default_prompt"
                             name="miv_default_prompt"
@@ -208,10 +216,57 @@ function miv_render_admin_page()
                 </div>
             </form>
 
-        <?php elseif ($tab === 'kb'): ?>
+        <?php elseif ($tab === 'km'): ?>
 
-            <!-- Knowledge Base upload section -->
+            <!-- Knowledge Map Tab -->
             <div class="miv-panel">
+
+                <div class="miv-kb-upload-section">
+                    <div class="miv-kb-upload-title">Upload to Knowledge Map</div>
+                    <p style="color: #6C757D; margin-bottom: 20px; font-size: 14px;">
+                        The Knowledge Map provides high-level guidance that helps structure searches. Upload JSON files with topic/content pairs.
+                    </p>
+
+                    <form id="miv-km-upload-form">
+                        <div class="miv-kb-upload-row">
+                            <input
+                                id="miv_km_file"
+                                class="miv-kb-file-input"
+                                type="file"
+                                name="miv_km_file"
+                                accept=".json,.pdf,.docx" />
+                            <button id="miv-km-upload-btn" class="miv-kb-upload-btn" type="submit">
+                                Upload
+                            </button>
+                        </div>
+
+                        <div id="miv-km-progress-wrap" style="display:none; margin-top:16px;">
+                            <div style="background:#e9ecef; border-radius:999px; overflow:hidden;">
+                                <div id="miv-km-progress-bar" style="height:10px; width:0%; background:#6f42c1;"></div>
+                            </div>
+                        </div>
+
+                        <div id="miv-km-status" style="margin-top:10px; color:#495057;"></div>
+                    </form>
+                </div>
+
+                <table class="miv-kb-table">
+                    <thead>
+                        <tr>
+                            <th>File</th>
+                            <th>Uploaded</th>
+                        </tr>
+                    </thead>
+                    <tbody id="miv-km-files-tbody"></tbody>
+                </table>
+
+            </div>
+
+        <?php else: ?>
+
+            <!-- Knowledge Base Tab -->
+            <div class="miv-panel">
+
                 <div class="miv-kb-upload-section">
                     <div class="miv-kb-upload-title">Upload a file to your Knowledge Base</div>
 
@@ -247,47 +302,7 @@ function miv_render_admin_page()
                     </thead>
                     <tbody id="miv-kb-files-tbody"></tbody>
                 </table>
-            </div>
 
-        <?php elseif ($tab === 'km'): ?>
-
-            <!-- Knowledge Map upload section -->
-            <div class="miv-panel">
-                <div class="miv-km-upload-section">
-                    <div class="miv-kb-upload-title">Upload a file to your Knowledge Map</div>
-
-                    <form id="miv-km-upload-form">
-                        <div class="miv-kb-upload-row">
-                            <input
-                                id="miv_km_file"
-                                class="miv-km-file-input"
-                                type="file"
-                                name="miv_km_file"
-                                accept=".pdf,.doc,.docx,.txt,.md,.json" />
-                            <button id="miv-km-upload-btn" class="miv-km-upload-btn" type="submit">
-                                Upload
-                            </button>
-                        </div>
-
-                        <div id="miv-progress-wrap" style="display:none; margin-top:16px;">
-                            <div style="background:#e9ecef; border-radius:999px; overflow:hidden;">
-                                <div id="miv-progress-bar" style="height:10px; width:0%; background:#6f42c1;"></div>
-                            </div>
-                        </div>
-
-                        <div id="miv-km-status" style="margin-top:10px; color:#495057;"></div>
-                    </form>
-                </div>
-
-                <table class="miv-km-table">
-                    <thead>
-                        <tr>
-                            <th>File</th>
-                            <th>Uploaded</th>
-                        </tr>
-                    </thead>
-                    <tbody id="miv-km-files-tbody"></tbody>
-                </table>
             </div>
 
         <?php endif; ?>
@@ -300,6 +315,7 @@ function miv_render_admin_page()
  * AJAX endpoints
  */
 
+// Knowledge Base List
 add_action('wp_ajax_miv_kb_list', 'miv_kb_list');
 function miv_kb_list()
 {
@@ -308,12 +324,10 @@ function miv_kb_list()
     }
     check_ajax_referer('miv_admin_nonce', 'nonce');
 
-    // Use centralized function
     $backend_url = miv_get_backend_url();
 
-    // Call the backend to get the list
     $response = wp_remote_get($backend_url . '/list-documents', array(
-        'timeout' => 60 // do not change.
+        'timeout' => 60
     ));
 
     if (is_wp_error($response)) {
@@ -331,18 +345,18 @@ function miv_kb_list()
         return;
     }
 
-    // Format for frontend
     $files = array();
     foreach ($data['documents'] as $doc) {
         $files[] = array(
             'filename' => $doc['filename'],
-            'uploaded' => 'Recently' // You could add timestamps to metadata for real dates
+            'uploaded' => 'Recently'
         );
     }
 
     wp_send_json_success(array('files' => $files));
 }
 
+// Knowledge Base Upload
 add_action('wp_ajax_miv_kb_upload', 'miv_kb_upload');
 function miv_kb_upload()
 {
@@ -356,11 +370,9 @@ function miv_kb_upload()
         wp_send_json_error(array('message' => 'No file received'));
     }
 
-    // Use centralized function
     $backend_url = miv_get_backend_url();
     $file = $_FILES['miv_kb_file'];
 
-    // Prepare CURL request to Python Backend
     $ch = curl_init();
 
     $cfile = new CURLFile($file['tmp_name'], $file['type'], $file['name']);
@@ -370,7 +382,7 @@ function miv_kb_upload()
     curl_setopt($ch, CURLOPT_POST, 1);
     curl_setopt($ch, CURLOPT_POSTFIELDS, $data);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-    curl_setopt($ch, CURLOPT_TIMEOUT, 300); // do not change. will stop documents from ingesting if too low.
+    curl_setopt($ch, CURLOPT_TIMEOUT, 300);
 
     $response = curl_exec($ch);
     $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
@@ -392,35 +404,73 @@ function miv_kb_upload()
     }
 }
 
-// Knowledge Map upload AJAX handler
+// Knowledge Map List
+add_action('wp_ajax_miv_km_list', 'miv_km_list');
+function miv_km_list()
+{
+    if (!current_user_can('manage_options')) {
+        wp_send_json_error(array('message' => 'Forbidden'));
+    }
+    check_ajax_referer('miv_admin_nonce', 'nonce');
 
+    $backend_url = miv_get_backend_url();
+
+    $response = wp_remote_get($backend_url . '/list-knowledge-maps', array(
+        'timeout' => 60
+    ));
+
+    if (is_wp_error($response)) {
+        wp_send_json_error(array(
+            'message' => 'Could not connect to backend: ' . $response->get_error_message()
+        ));
+        return;
+    }
+
+    $body = wp_remote_retrieve_body($response);
+    $data = json_decode($body, true);
+
+    if (!isset($data['success']) || !$data['success']) {
+        wp_send_json_error(array('message' => 'Backend returned an error'));
+        return;
+    }
+
+    $files = array();
+    foreach ($data['knowledge_maps'] as $doc) {
+        $files[] = array(
+            'filename' => $doc['filename'],
+            'uploaded' => 'Recently'
+        );
+    }
+
+    wp_send_json_success(array('files' => $files));
+}
+
+// Knowledge Map Upload
 add_action('wp_ajax_miv_km_upload', 'miv_km_upload');
 function miv_km_upload()
 {
     if (!current_user_can('manage_options')) {
-        wp_send_json_error(['message' => 'Forbidden']);
+        wp_send_json_error(array('message' => 'Forbidden'));
     }
+
     check_ajax_referer('miv_admin_nonce', 'nonce');
 
-    if (empty($_FILES['miv_km_file']) || $_FILES['miv_km_file']['error'] !== UPLOAD_ERR_OK) {
-        wp_send_json_error(['message' => 'File upload failed.']);
+    if (empty($_FILES['miv_km_file']) || empty($_FILES['miv_km_file']['tmp_name'])) {
+        wp_send_json_error(array('message' => 'No file received'));
     }
 
-    $file = $_FILES['miv_km_file'];
     $backend_url = miv_get_backend_url();
+    $file = $_FILES['miv_km_file'];
 
-    // Prepare CURL request to Python backend
     $ch = curl_init();
 
-    $cfile = curl_file_create($file['tmp_name'], $file['type'], $file['name']);
-    $data = [
-        'file' => $cfile,
-        'target_index' => 'km'
-    ];
+    $cfile = new CURLFile($file['tmp_name'], $file['type'], $file['name']);
+    $postData = array('file' => $cfile);
 
-    curl_setopt($ch, CURLOPT_URL, $backend_url . '/ingest');  // ✅ POST to /ingest
+    // IMPORTANT: Send target_index as a query parameter in the URL
+    curl_setopt($ch, CURLOPT_URL, $backend_url . '/ingest?target_index=km');
     curl_setopt($ch, CURLOPT_POST, 1);
-    curl_setopt($ch, CURLOPT_POSTFIELDS, $data);
+    curl_setopt($ch, CURLOPT_POSTFIELDS, $postData);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
     curl_setopt($ch, CURLOPT_TIMEOUT, 300);
 
@@ -430,9 +480,9 @@ function miv_km_upload()
     curl_close($ch);
 
     if ($http_code !== 200) {
-        wp_send_json_error([
+        wp_send_json_error(array(
             'message' => 'Backend Error (' . $http_code . '): ' . ($error_msg ?: $response)
-        ]);
+        ));
     }
 
     $json_response = json_decode($response, true);
@@ -440,6 +490,6 @@ function miv_km_upload()
     if (isset($json_response['success']) && $json_response['success']) {
         wp_send_json_success($json_response);
     } else {
-        wp_send_json_error(['message' => 'Ingestion failed: ' . $response]);
+        wp_send_json_error(array('message' => 'Ingestion failed: ' . $response));
     }
 }

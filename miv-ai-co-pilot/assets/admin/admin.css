@@ -104,12 +104,36 @@ body.toplevel_page_miv-ai-copilot {
   margin-bottom: 32px;
 }
 
+.miv-label-with-reset {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
 .miv-api-label {
   display: block;
   font-size: 18px;
   font-weight: 600;
   color: var(--miv-text-dark);
-  margin-bottom: 12px;
+  margin: 0;
+}
+
+.miv-reset-btn {
+  background: transparent;
+  color: var(--miv-accent);
+  border: 1px solid var(--miv-accent);
+  padding: 6px 16px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.miv-reset-btn:hover {
+  background: var(--miv-accent);
+  color: #ffffff;
 }
 
 .miv-api-input {
@@ -158,19 +182,19 @@ body.toplevel_page_miv-ai-copilot {
 }
 
 /* ---------- Knowledge Base Upload ---------- */
-.miv-kb-upload-section, .miv-km-upload-section {
+.miv-kb-upload-section {
   margin-bottom: 40px;
   text-align: center;
 }
 
-.miv-kb-upload-title, .miv-km-upload-title {
+.miv-kb-upload-title {
   font-size: 18px;
   font-weight: 600;
   color: var(--miv-text-dark);
   margin-bottom: 20px;
 }
 
-.miv-kb-upload-row, .miv-km-upload-row {
+.miv-kb-upload-row {
   display: flex;
   justify-content: center;
   align-items: center;
@@ -178,7 +202,7 @@ body.toplevel_page_miv-ai-copilot {
   flex-wrap: wrap;
 }
 
-.miv-kb-file-input, .miv-km-file-input {
+.miv-kb-file-input {
   padding: 12px 16px;
   border: 2px dashed #CED4DA;
   border-radius: 12px;
@@ -186,7 +210,7 @@ body.toplevel_page_miv-ai-copilot {
   font-size: 16px;
 }
 
-.miv-kb-upload-btn, .miv-km-upload-btn {
+.miv-kb-upload-btn {
   background: var(--miv-primary);
   color: white;
   border: none;
@@ -198,7 +222,7 @@ body.toplevel_page_miv-ai-copilot {
   box-shadow: 0 4px 12px rgba(0, 122, 135, 0.3);
 }
 
-.miv-kb-upload-btn:hover, .miv-km-upload-btn:hover {
+.miv-kb-upload-btn:hover {
   background: var(--miv-primary-dark);
 }
 
@@ -220,13 +244,13 @@ body.toplevel_page_miv-ai-copilot {
 }
 
 /* ---------- Table ---------- */
-.miv-kb-table, .miv-km-table {
+.miv-kb-table {
   width: 100%;
   border-collapse: collapse;
   margin-top: 20px;
 }
 
-.miv-kb-table, .miv-km-table th {
+.miv-kb-table th {
   text-align: left;
   padding: 16px 20px;
   background: #E9ECEF;
@@ -235,12 +259,12 @@ body.toplevel_page_miv-ai-copilot {
   font-size: 15px;
 }
 
-.miv-kb-table, .miv-km-table td {
+.miv-kb-table td {
   padding: 16px 20px;
   border-bottom: 1px solid #E9ECEF;
 }
 
-.miv-kb-table, .miv-km-table tr:last-child td {
+.miv-kb-table tr:last-child td {
   border-bottom: none;
 }
 
