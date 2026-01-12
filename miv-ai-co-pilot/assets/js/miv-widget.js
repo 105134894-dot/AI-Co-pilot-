@@ -241,8 +241,8 @@
         if (hasSavedSize()) return;
     
         //  sensible first-open size
-        const defaultW = clamp(560, 360, getMaxW());
-        const defaultH = clamp(640, 360, getMaxH());
+        const defaultW = clamp(700, 360, getMaxW());
+        const defaultH = clamp(500, 360, getMaxH());
     
         suppressSizeSave = true;
         chatWindow.style.width = defaultW + "px";

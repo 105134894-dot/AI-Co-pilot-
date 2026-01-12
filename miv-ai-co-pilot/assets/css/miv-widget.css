@@ -79,10 +79,10 @@
     --miv-border-subtle: rgba(0, 0, 0, 0.08);
     --miv-font-scale: 1;
 
-    width: min(660px, 92vw);
 
+    width: min(640px, 95vw);
     /*  NEW: sensible default height + allows it to reach near the top */
-    height: min(620px, calc(100vh - 3rem));
+    height: min(420px, calc(100vh - 3rem));
 
     /* allow native resize as fallback (still bottom-right) */
     resize: both;
@@ -109,7 +109,6 @@
     font-size: calc(1rem * var(--miv-font-scale));
 }
 
-
 .miv-chat-window * {
     font-size: inherit !important;
 }
@@ -129,7 +128,6 @@
     z-index: 20;
     background: transparent;
 }
-
 
 .miv-chat-window:hover .miv-resize-handle::before {
     opacity: 1;
@@ -553,7 +551,8 @@
 /* Input row - FIX: Remove padding above input */
 .miv-input-row {
     background: var(--miv-input-bg);
-    padding: 0.4rem 0.9rem 0.7rem;
+    padding: 0.2rem 0.9rem 0.2rem;
+    height: 40px;
     border-top: 1px solid var(--miv-border-subtle);
     display: flex;
     gap: 0.5rem;
@@ -564,11 +563,12 @@
     flex: 1;
     border-radius: 999px;
     border: 1px solid var(--miv-border-subtle);
-    padding: 0.4rem 0.75rem;
+    padding: 0 0.75rem;
     background: inherit;
     color: inherit;
-    min-height: 40px;
-    line-height: 1.2;
+    min-height: 0;
+    height: 100%;
+    line-height: 40px;
     font-size: inherit;
     transition: border-color 0.2s ease;
 }
@@ -596,7 +596,8 @@
     padding: 0.4rem 0.8rem;
     font-size: inherit;
     cursor: pointer;
-    min-height: 40px;
+    min-height: 0;
+    height: 100%;
     transition: background 0.2s ease, transform 0.1s ease;
 }
 
