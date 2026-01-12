@@ -305,7 +305,7 @@ async def ingest_endpoint(file: UploadFile = File(...), target_index: str = "kb"
             km_data = json.loads(file_bytes)
 
             for i, entry in enumerate(km_data):
-                text_for_embedding = entry.get("description", "").strip()
+                text_for_embedding = entry.get("text_to_embed", "").strip()
                 if not text_for_embedding:
                     continue
 
@@ -317,8 +317,7 @@ async def ingest_endpoint(file: UploadFile = File(...), target_index: str = "kb"
                         "user_intent": entry.get("user_intent", ""),
                         "tool_name": entry.get("tool_name", ""),
                         "url": entry.get("url") or entry.get("URL", ""),
-                        "user_questions": entry.get("user_questions", ""),
-                        "description": text_for_embedding
+                        "text_to_embed": text_for_embedding
                         
                     }
                 })
@@ -365,12 +364,11 @@ async def ingest_endpoint(file: UploadFile = File(...), target_index: str = "kb"
                     chunk_id,
                     vector,
                     {
-                        "text": metadata["description"],
+                        "text": metadata["text_to_embed"],
                         "source": metadata["source"],
                         "user_intent": metadata["user_intent"],
                         "tool_name": metadata["tool_name"],
                         "url": metadata["url"],
-                        "user_questions": metadata["user_questions"]
                     }
                 ))
 
