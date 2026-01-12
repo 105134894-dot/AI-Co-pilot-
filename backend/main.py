@@ -150,7 +150,6 @@ def extract_pdf_paragraphs_with_headings(file_bytes: bytes):
 
     return paragraphs
 
-
 # ----- Paragraph-level Chunking -----
 def merge_paragraphs_into_chunks(paragraphs, max_chunk_size=1000):
     """
@@ -231,84 +230,169 @@ def home():
 @app.post("/ingest", response_model=IngestResponse)
 async def ingest_endpoint(file: UploadFile = File(...), target_index: str = "kb"):
     """
-    Upload and ingest a PDF, DOCX, or JSON file into the vector database.
-    - PDF/DOCX: chunk paragraphs as before
-    - JSON: expect list of {topic, content} objects for Knowledge Map
+    Upload and ingest a file into the vector database.
+
+    KB (default):
+      - PDF
+      - DOCX
+      - TXT
+      - Generic JSON {topic, content}
+
+    KM (target_index="km"):
+      - JSON Knowledge Map with text_to_embed + metadata
     """
     start_time = time.time()
     filename = file.filename
-    
-    # Determine target index
+
+    # -----------------------------
+    # SELECT INDEX
+    # -----------------------------
     if target_index == "km":
         index_target = pc.Index(KNOWLEDGE_MAP_INDEX_NAME)
     else:
         index_target = pc.Index(PINECONE_INDEX_NAME)
 
-    # Validate file type
-    if not filename.lower().endswith(('.pdf', '.docx', '.json')):
-        raise HTTPException(status_code=400, detail="Invalid file type. Only PDF, DOCX, or JSON supported.")
+    # -----------------------------
+    # FILE TYPE VALIDATION
+    # -----------------------------
+    if not filename.lower().endswith(('.pdf', '.docx', '.json', '.txt')):
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid file type. Only PDF, DOCX, TXT, or JSON supported."
+        )
 
     try:
-        # Remove existing vectors for this file
+        # -----------------------------
+        # CLEAN EXISTING VECTORS
+        # -----------------------------
         try:
             index_target.delete(filter={"source": filename})
-        except Exception as e:
-            print(f"⚠️ Could not delete existing vectors: {e}")
-        
-        # Read file bytes
+        except Exception:
+            pass
+
         file_bytes = await file.read()
         paragraph_chunks = []
 
-        if filename.lower().endswith('.pdf'):
-            paragraphs = extract_pdf_paragraphs_with_headings(file_bytes)
-            paragraph_chunks = merge_paragraphs_into_chunks(paragraphs)
-        elif filename.lower().endswith('.docx'):
-            paragraphs = extract_docx_paragraphs_with_headings(file_bytes)
-            paragraph_chunks = merge_paragraphs_into_chunks(paragraphs)
-        elif filename.lower().endswith('.json'):
-            
-            # JSON ingestion for Knowledge Map
+       # =========================================================
+        # KB INGESTION (FALLBACK HEADINGS)
+        # =========================================================
+        if target_index != "km":
+
+            if filename.lower().endswith('.pdf'):
+                paragraphs = extract_pdf_paragraphs_with_headings(file_bytes)
+                paragraph_chunks_raw = merge_paragraphs_into_chunks(paragraphs)
+
+            elif filename.lower().endswith('.docx'):
+                paragraphs = extract_docx_paragraphs_with_headings(file_bytes)
+                paragraph_chunks_raw = merge_paragraphs_into_chunks(paragraphs)
+
+
+            elif filename.lower().endswith('.txt'):
+                text = file_bytes.decode("utf-8", errors="ignore")
+                paragraphs_raw = [p.strip() for p in text.split("\n\n") if p.strip()]
+                paragraph_chunks_raw = [{"text": p, "heading": None} for p in paragraphs_raw]
+
+            elif filename.lower().endswith('.json'):
+                data = json.loads(file_bytes)
+                paragraph_chunks_raw = [{"text": entry.get("content", ""), "heading": entry.get("topic")} for entry in data]
+
+             # Apply fallback heading
+            for i, chunk in enumerate(paragraph_chunks_raw):
+                text = chunk["text"]
+                # Use heading_level if detected, else fallback to first line
+                heading = chunk.get("heading_level") or text.split("\n")[0][:50] or "No Heading"
+                paragraph_chunks.append({
+                    "text": text,
+                    "heading": heading,
+                    "paragraph_index": i
+                })
+
+
+        # =========================================================
+        # KM INGESTION
+        # =========================================================
+        else:
             km_data = json.loads(file_bytes)
+
             for i, entry in enumerate(km_data):
-                topic = entry.get("topic", f"topic-{i}")
-                content = entry.get("content", "")
+                text_for_embedding = entry.get("description", "").strip()
+                if not text_for_embedding:
+                    continue
 
                 paragraph_chunks.append({
-                    "text": content, 
-                    "heading": topic,
+                    "text": text_for_embedding,
                     "paragraph_index": i,
+                    "metadata": {
+                        "source": filename,
+                        "user_intent": entry.get("user_intent", ""),
+                        "tool_name": entry.get("tool_name", ""),
+                        "url": entry.get("url") or entry.get("URL", ""),
+                        "user_questions": entry.get("user_questions", ""),
+                        "description": text_for_embedding
+                        
                     }
-                )
-                
+                })
+
+        # =========================================================
+        # EMBEDDING + UPSERT
+        # =========================================================
         vectors_to_upsert = []
-        for chunk_info in paragraph_chunks:
-            text = chunk_info['text']
-            heading = chunk_info['heading']
-            para_idx = chunk_info['paragraph_index']
-            metadata = chunk_info.get('metadata', {})
 
-            # Generate embedding
-            embedding_response = client.models.embed_content(model=EMBED_MODEL_NAME, contents=text)
+        for chunk in paragraph_chunks:
+            text = chunk["text"]
+            para_idx = chunk["paragraph_index"]
+
+            embedding_response = client.models.embed_content(
+                model=EMBED_MODEL_NAME,
+                contents=text
+            )
             vector = embedding_response.embeddings[0].values
-            chunk_id = f"{filename}-para-{para_idx}"
 
-            # Include metadata in the upsert
-            vectors_to_upsert.append((chunk_id, vector, {
-                "text": metadata.get("text_to_embed", text),
-                "source": filename,
-                "heading": metadata.get("user_intent", heading),
-                "tool_name": metadata.get("tool_name", ""),
-                "url": metadata.get("url", "")
-            }))
+            # -----------------------------
+            # KB UPSERT (CLEAN)
+            # -----------------------------
+            if target_index != "km":
+                chunk_id = f"{filename}-para-{para_idx}"
 
+                vectors_to_upsert.append((
+                    chunk_id,
+                    vector,
+                    {
+                        "text": text,
+                        "heading": chunk.get("heading"),
+                        "source": filename
+                    }
+                ))
+
+            # -----------------------------
+            # KM UPSERT (INTENT-BASED)
+            # -----------------------------
+            else:
+                metadata = chunk["metadata"]
+                chunk_id = f"km-{para_idx}"
+
+                vectors_to_upsert.append((
+                    chunk_id,
+                    vector,
+                    {
+                        "text": metadata["description"],
+                        "source": metadata["source"],
+                        "user_intent": metadata["user_intent"],
+                        "tool_name": metadata["tool_name"],
+                        "url": metadata["url"],
+                        "user_questions": metadata["user_questions"]
+                    }
+                ))
+
+            # Batch upsert
             if len(vectors_to_upsert) >= BATCH_SIZE:
                 index_target.upsert(vectors=vectors_to_upsert)
                 vectors_to_upsert = []
 
+        # Final flush
         if vectors_to_upsert:
             index_target.upsert(vectors=vectors_to_upsert)
 
-        elapsed = time.time() - start_time
         return IngestResponse(
             success=True,
             message=f"Successfully ingested {filename}",
