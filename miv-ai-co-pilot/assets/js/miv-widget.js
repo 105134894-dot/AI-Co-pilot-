@@ -583,7 +583,7 @@
         updateNavigationButtons();
     
         // Ensure the user can scroll to the end of long responses.
-        messagesEl.scrollTop = messagesEl.scrollHeight;
+        // messagesEl.scrollTop = messagesEl.scrollHeight; // Disabled to keep scroll at top after navigation
     }
     
 
