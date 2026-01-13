@@ -775,11 +775,11 @@
 
         messagesEl.appendChild(wrapper);
 
-        // Scroll behaviour (kept as-is)
+        // Scroll behaviour: keep at top for assistant responses
         if (role === "user") {
             wrapper.scrollIntoView({ behavior: "smooth", block: "start" });
         } else {
-            messagesEl.scrollTop = messagesEl.scrollHeight;
+            messagesEl.scrollTop = 0;
         }
     }
 
