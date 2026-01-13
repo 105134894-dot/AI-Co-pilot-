@@ -562,9 +562,9 @@
         saveHistory(restoredHistory);
         messagesEl.innerHTML = "";
         restoredHistory.forEach((m) => addMessage(m.role, m.text, { skipSave: true }));
-    
+        // Always scroll to top after restoring history
+        messagesEl.scrollTop = 0;
         const hasUserMessage = restoredHistory.some((m) => m.role === "user");
-    
         hasAskedQuestion = hasUserMessage;
         intent = entry.intent || null;
         currentState = entry.state || { intent: null, message: null };
