@@ -129,6 +129,7 @@
     const backBtn = document.getElementById("miv-back-btn");
     const forwardBtn = document.getElementById("miv-forward-btn");
     const clearBtn = document.getElementById("miv-clear-chat-btn");
+    const summarizeBtn = document.getElementById("miv-summarize-btn");
 
     /* -----------------------------
        Quick questions UI
@@ -289,8 +290,7 @@
             const w = Number.isFinite(wStyle) && wStyle > 0 ? wStyle : rect.width;
             const h = Number.isFinite(hStyle) && hStyle > 0 ? hStyle : rect.height;
 
-            // Guard: don't overwrite saved size with 0x0 or tiny values (happens on refresh
-            // if pagehide fires while chat is closed / display:none).
+            // Guard: don't overwrite saved size with 0x0 or tiny values
             if (!(w > 100 && h > 100)) return;
 
             localStorage.setItem(
@@ -526,6 +526,25 @@
             forwardBtn.setAttribute("aria-hidden", "true");
             forwardBtn.setAttribute("aria-disabled", "true");
         }
+
+        // Summarize button: show only if at least one assistant message exists
+        if (summarizeBtn) {
+            const hasAssistant = loadHistory().some((m) => m.role === "assistant");
+
+            if (hasAssistant) {
+                summarizeBtn.hidden = false;
+                summarizeBtn.classList.remove("miv-hidden");
+                summarizeBtn.tabIndex = 0;
+                summarizeBtn.setAttribute("aria-hidden", "false");
+                summarizeBtn.setAttribute("aria-disabled", "false");
+            } else {
+                summarizeBtn.hidden = true;
+                summarizeBtn.classList.add("miv-hidden");
+                summarizeBtn.tabIndex = -1;
+                summarizeBtn.setAttribute("aria-hidden", "true");
+                summarizeBtn.setAttribute("aria-disabled", "true");
+            }
+        }
     }
 
     function navigateTo(state) {
@@ -558,6 +577,7 @@
         saveHistory(restoredHistory);
         messagesEl.innerHTML = "";
         restoredHistory.forEach((m) => addMessage(m.role, m.text, { skipSave: true }));
+
         // Always scroll to top after restoring history
         messagesEl.scrollTop = 0;
 
@@ -768,11 +788,27 @@
 
         messagesEl.appendChild(wrapper);
 
-        // Scroll behaviour: keep at top for assistant responses
+        // Scroll behaviour:
+        // - Keep existing behaviour by default (assistant -> top)
+        // - For normal live assistant replies: scroll to the start of the new message
+        // - For summary only: scroll to bottom
         if (role === "user") {
-            wrapper.scrollIntoView({ behavior: "smooth", block: "start" });
+            requestAnimationFrame(() => {
+                wrapper.scrollIntoView({ behavior: "smooth", block: "start" });
+            });
         } else {
-            messagesEl.scrollTop = 0;
+            if (options.scrollToBottom) {
+                // Used by Summarize
+                messagesEl.scrollTop = messagesEl.scrollHeight;
+            } else if (options.scrollToMessage) {
+                // Used by normal live assistant replies
+                requestAnimationFrame(() => {
+                    wrapper.scrollIntoView({ behavior: "smooth", block: "start" });
+                });
+            } else {
+                // Used by navigation / restore / temp system messages
+                messagesEl.scrollTop = 0;
+            }
         }
     }
 
@@ -997,13 +1033,61 @@
                     system_prompt: systemPrompt
                 })
             });
+
             const data = await res.json();
             removeTypingIndicator();
-            addMessage("assistant", (data && data.response) || "I couldn't generate a response just now.");
+
+            addMessage(
+                "assistant",
+                (data && data.response) || "I couldn't generate a response just now.",
+                { scrollToMessage: true }
+            );
         } catch (err) {
             console.error(err);
             removeTypingIndicator();
-            addMessage("assistant", "I ran into a technical issue talking to the server.");
+            addMessage(
+                "assistant",
+                "I ran into a technical issue talking to the server.",
+                { scrollToMessage: true }
+            );
+        } finally {
+            isLoading = false;
+            updateNavigationButtons();
+        }
+    }
+
+    async function sendSilentSummary(promptText) {
+        if (!promptText || isLoading) return;
+        isLoading = true;
+
+        quickWrap.style.display = "none";
+        addTypingIndicator();
+
+        try {
+            const res = await fetch(backendUrl + "/chat", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    query: promptText,
+                    top_k: 3,
+                    system_prompt: systemPrompt
+                })
+            });
+            const data = await res.json();
+            removeTypingIndicator();
+            addMessage(
+                "assistant",
+                (data && data.response) || "I couldn't generate a summary just now.",
+                { scrollToBottom: true }
+            );
+        } catch (err) {
+            console.error(err);
+            removeTypingIndicator();
+            addMessage(
+                "assistant",
+                "I ran into a technical issue while summarizing the conversation.",
+                { scrollToBottom: true }
+            );
         } finally {
             isLoading = false;
             updateNavigationButtons();
@@ -1091,6 +1175,36 @@
         input.value = "";
         sendMessage(text);
     });
+
+    if (summarizeBtn) {
+        summarizeBtn.addEventListener("click", async () => {
+            const history = loadHistory();
+
+            const hasUser = history.some((m) => m.role === "user");
+            const hasAssistant = history.some((m) => m.role === "assistant");
+
+            if (!hasUser || !hasAssistant || history.length < 3) {
+                addMessage(
+                    "assistant",
+                    "The conversation is still quite short — there’s not much to summarize yet.",
+                    { scrollToMessage: true }
+                );
+                return;
+            }
+
+            const conversationText = history
+                .map((m) => `${m.role.toUpperCase()}: ${m.text}`)
+                .join("\n\n");
+
+            const summaryPrompt =
+                "Summarize this conversation in concise bullet points. " +
+                "Include the main questions, key guidance, and suggested next steps. " +
+                "Keep it short and easy to read.\n\n" +
+                conversationText;
+
+            await sendSilentSummary(summaryPrompt);
+        });
+    }
 
     window.addEventListener("pagehide", () => {
         // Avoid overwriting saved size with 0x0 when the chat is closed

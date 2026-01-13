@@ -142,6 +142,16 @@ function miv_inject_copilot_widget()
                         ↺
                     </button>
 
+                     <!-- NEW: Summarize chat button (hidden until chat exists) -->
+                    <button
+                        class="miv-header-icon-btn miv-summarize-btn"
+                        id="miv-summarize-btn"
+                        aria-label="Summarize conversation"
+                        title="Summarize chat"
+                        hidden>
+                        📝
+                    </button>
+
                     <button
                         class="miv-a11y-toggle"
                         id="miv-a11y-toggle"

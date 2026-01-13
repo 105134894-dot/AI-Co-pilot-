@@ -291,6 +291,19 @@
     transform: scale(1.05);
 }
 
+/* Summarize chat button */
+.miv-summarize-btn {
+    font-size: 1.3rem;
+    opacity: 0.9;
+    transition: transform 0.15s ease, opacity 0.15s ease;
+}
+
+.miv-summarize-btn:hover {
+    opacity: 1;
+    transform: scale(1.1);
+}
+
+
 /* ================================
    Clear chat confirmation (FINAL)
    - refined warning ring + pulse
