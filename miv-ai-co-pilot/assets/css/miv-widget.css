@@ -79,9 +79,8 @@
     --miv-border-subtle: rgba(0, 0, 0, 0.08);
     --miv-font-scale: 1;
 
-
     width: min(640px, 95vw);
-    /*  NEW: sensible default height + allows it to reach near the top */
+    /* sensible default height + allows it to reach near the top */
     height: min(420px, calc(100vh - 3rem));
 
     /* allow native resize as fallback (still bottom-right) */
@@ -91,7 +90,7 @@
     min-width: 360px;
     min-height: 360px;
 
-    /*  UPDATED: allow it to grow to near full viewport */
+    /* allow it to grow to near full viewport */
     max-width: calc(100vw - 3rem);
     max-height: calc(100vh - 3rem);
 
@@ -135,7 +134,7 @@
 
 /* --- THEMES --- */
 
-/* FIX: Improved high contrast mode with better text colors */
+/* Improved high contrast mode with better text colors */
 .miv-chat-window--high-contrast {
     --miv-bg: #1A1A1A;
     --miv-header-text: #ffffff;
@@ -270,6 +269,7 @@
 .miv-header-icon-btn,
 .miv-close-btn,
 .miv-a11y-toggle {
+    position: relative; /* anchor pseudo elements (tooltips) */
     border: none;
     background: rgba(0, 0, 0, 0.18);
     color: #ffffff;
@@ -289,6 +289,75 @@
 .miv-a11y-toggle:hover {
     background: rgba(0, 0, 0, 0.32);
     transform: scale(1.05);
+}
+
+/* ================================
+   Clear chat confirmation (FINAL)
+   - refined warning ring + pulse
+   - stable tooltip (no diamond)
+   ================================ */
+.miv-clear-armed {
+    position: relative; /* anchor tooltip */
+    z-index: 50;        /* above sibling buttons */
+
+    background: rgba(220, 53, 69, 0.16) !important;
+
+    box-shadow:
+        0 0 0 2px rgba(220, 53, 69, 0.55) inset,
+        0 0 0 1px rgba(255, 255, 255, 0.18);
+
+    filter: drop-shadow(0 0 10px rgba(220, 53, 69, 0.22));
+    animation: miv-clearPulse 1.2s ease-in-out infinite;
+}
+
+/* Keep tooltip stable: no hover scaling while armed */
+.miv-clear-armed:hover {
+    transform: none !important;
+}
+
+/* Tooltip pill (message) */
+.miv-clear-armed::after {
+    content: attr(data-confirm);
+    position: absolute;
+    top: calc(100% + 8px);
+    left: 50%;
+    transform: translateX(-50%);
+    white-space: nowrap;
+
+    background: rgba(20, 20, 20, 0.92);
+    color: #fff;
+    font-size: 12px;
+    line-height: 1;
+    padding: 8px 12px;
+    border-radius: 999px;
+    box-shadow: 0 10px 22px rgba(0, 0, 0, 0.25);
+
+    z-index: 9999;
+    pointer-events: none;
+}
+
+/* Subtle pulse animation */
+@keyframes miv-clearPulse {
+    0%, 100% {
+        box-shadow:
+            0 0 0 2px rgba(220, 53, 69, 0.55) inset,
+            0 0 0 1px rgba(255, 255, 255, 0.18);
+        filter: drop-shadow(0 0 10px rgba(220, 53, 69, 0.18));
+    }
+    50% {
+        box-shadow:
+            0 0 0 2px rgba(220, 53, 69, 0.75) inset,
+            0 0 0 1px rgba(255, 255, 255, 0.22);
+        filter: drop-shadow(0 0 14px rgba(220, 53, 69, 0.28));
+    }
+}
+
+/* High contrast: keep it visible without relying on red */
+.miv-chat-window--high-contrast .miv-clear-armed {
+    background: rgba(255, 255, 255, 0.12) !important;
+    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.85) inset;
+    filter: none;
+    animation: none;
 }
 
 /* Accessibility panel */
@@ -315,7 +384,7 @@
     margin-bottom: 0.35rem;
 }
 
-/* FIX: Reset button styling to match direction of AP toggle */
+/* Reset button styling to match direction of AP toggle */
 #miv-a11y-reset {
     width: 28px;
     height: 28px;
@@ -457,7 +526,6 @@
 
 .miv-chip--secondary {
     background: rgba(255, 255, 255, 0.65);
-    /* FIX: Add extra bottom padding for "Something Else" */
     margin-bottom: 0.3rem;
 }
 
@@ -470,10 +538,10 @@
     background: var(--miv-body-bg);
     padding: 0.8rem 1rem;
 
-    /*  keeps the messages area as the scroll container */
+    /* keeps the messages area as the scroll container */
     flex: 1;
 
-    /* FIX: CRITICAL for flex scroll containers (prevents “cut off at bottom”) */
+    /* CRITICAL for flex scroll containers */
     min-height: 0;
 
     overflow-y: auto;
@@ -481,7 +549,7 @@
     display: flex;
     flex-direction: column;
 
-    /*  optional but recommended: keeps last message comfortably readable */
+    /* readability */
     padding-bottom: 1.2rem;
     scroll-padding-bottom: 72px;
 }
@@ -494,11 +562,11 @@
     line-height: 1.5;
 }
 
+/* Improve readability: add breathing room below assistant messages */
 .miv-message--assistant {
     color: var(--miv-assistant-text);
     align-self: flex-start;
     background: var(--miv-assistant-bubble);
-    color: var(--miv-assistant-text);
     padding: 0.55rem 0.75rem 0.9rem;
     border-radius: 14px 14px 14px 4px;
     max-width: 95%;
@@ -510,7 +578,7 @@
     background: var(--miv-user-bubble);
     color: var(--miv-user-text, #ffffff);
     padding: 0.55rem 0.75rem;
-    border-radius: 14px 14px 4px 14px; /* chat bubble feel */
+    border-radius: 14px 14px 4px 14px;
     max-width: 75%;
     text-align: left;
 }
@@ -548,7 +616,7 @@
     }
 }
 
-/* Input row - FIX: Remove padding above input */
+/* Input row - Remove padding above input */
 .miv-input-row {
     background: var(--miv-input-bg);
     padding: 0.2rem 0.9rem 0.2rem;
@@ -628,7 +696,7 @@
     .miv-chat-window {
         width: min(100vw - 1.5rem, 420px);
         height: min(85vh, 640px);
-        
+
         max-height: 85vh;
         resize: none;
         min-width: unset;
@@ -640,17 +708,6 @@
 
     .miv-resize-handle {
         display: none;
-    }
-}
-
-@media (max-width: 600px) {
-    .miv-widget-root {
-        inset: auto 0.75rem 0.75rem auto;
-    }
-
-    .miv-chat-window {
-        width: min(100vw - 1.5rem, 420px);
-        max-height: 85vh;
     }
 }
 

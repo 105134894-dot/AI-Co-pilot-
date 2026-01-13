@@ -198,10 +198,10 @@
     }
 
     function getMaxW() {
-        //  match CSS calc(100vw - 3rem) (1.5rem left + 1.5rem right)
+        // match CSS calc(100vw - 3rem) (1.5rem left + 1.5rem right)
         return Math.max(360, Math.floor(window.innerWidth - 48));
     }
-    
+
     function getMaxH() {
         // allow it to reach near the top: calc(100vh - 3rem)
         return Math.max(360, Math.floor(window.innerHeight - 48));
@@ -235,25 +235,24 @@
             return false;
         }
     }
-    
+
     function applyDefaultSizeIfNone() {
         if (!chatWindow) return;
         if (hasSavedSize()) return;
-    
-        //  sensible first-open size
+
+        // sensible first-open size
         const defaultW = clamp(700, 360, getMaxW());
         const defaultH = clamp(500, 360, getMaxH());
-    
+
         suppressSizeSave = true;
         chatWindow.style.width = defaultW + "px";
         chatWindow.style.height = defaultH + "px";
         suppressSizeSave = false;
     }
-    
 
     /* -----------------------------
-   Clamp chat size to viewport
------------------------------ */
+       Clamp chat size to viewport
+    ----------------------------- */
     function clampChatToViewport({ persist = false } = {}) {
         if (!chatWindow) return;
 
@@ -274,10 +273,9 @@
 
         if (persist) saveSize();
 
-        // ✅ keep quick options sized correctly after clamping
+        // keep quick options sized correctly after clamping
         adjustQuickWrapScroll();
     }
-
 
     function saveSize() {
         try {
@@ -321,7 +319,6 @@
 
             resizing = true;
             isHandleResizing = true;
-            isHandleResizing = true;
             const pt = e.touches ? e.touches[0] : e;
 
             const rect = chatWindow.getBoundingClientRect();
@@ -353,7 +350,7 @@
             chatWindow.style.width = newW + "px";
             chatWindow.style.height = newH + "px";
 
-            // NEW: keep quick area sized correctly while resizing
+            // keep quick area sized correctly while resizing
             adjustQuickWrapScroll();
 
             if (e.cancelable) e.preventDefault();
@@ -362,7 +359,6 @@
         function onUp(e) {
             if (!resizing) return;
             resizing = false;
-            isHandleResizing = false;
             isHandleResizing = false;
 
             document.removeEventListener("mousemove", onMove);
@@ -555,20 +551,21 @@
 
     function restoreNavEntry(entry) {
         if (!entry) return;
-    
+
         const restoredHistory = Array.isArray(entry.history) ? entry.history : [];
-    
+
         // Restore stored chat history (localStorage) and repaint messages
         saveHistory(restoredHistory);
         messagesEl.innerHTML = "";
         restoredHistory.forEach((m) => addMessage(m.role, m.text, { skipSave: true }));
         // Always scroll to top after restoring history
         messagesEl.scrollTop = 0;
+
         const hasUserMessage = restoredHistory.some((m) => m.role === "user");
         hasAskedQuestion = hasUserMessage;
         intent = entry.intent || null;
         currentState = entry.state || { intent: null, message: null };
-    
+
         // KEY FIX:
         // Only render the quick UI + helper message when we are in a "pre-chat" state.
         // If the snapshot already includes a user chat, do NOT inject helper text.
@@ -579,13 +576,9 @@
             removeTempMessages();
             quickWrap.style.display = "none";
         }
-    
+
         updateNavigationButtons();
-    
-        // Ensure the user can scroll to the end of long responses.
-        // messagesEl.scrollTop = messagesEl.scrollHeight; // Disabled to keep scroll at top after navigation
     }
-    
 
     /* -----------------------------
        Quick questions UI helpers
@@ -633,7 +626,7 @@
             quickWrap.appendChild(btn);
         });
 
-        // NEW: ensure scroll sizing is correct right after render
+        // ensure scroll sizing is correct right after render
         adjustQuickWrapScroll();
     }
 
@@ -678,7 +671,7 @@
         });
         quickWrap.appendChild(reset);
 
-        // NEW: ensure scroll sizing is correct right after render
+        // ensure scroll sizing is correct right after render
         adjustQuickWrapScroll();
     }
 
@@ -691,7 +684,7 @@
         intent = state.intent || null;
         removeTempMessages();
 
-        // ✅ Always show quick UI when navigating
+        // Always show quick UI when navigating
         quickWrap.style.display = "flex";
 
         if (intent) {
@@ -851,19 +844,78 @@
         });
     }
 
-    clearBtn.addEventListener("click", () => {
-        clearHistory();
-        messagesEl.innerHTML = "";
-        intent = null;
-        isLoading = false;
-        removeTypingIndicator();
-        historyStack = [];
-        futureStack = [];
-        currentState = { intent: null, message: null };
-        welcomeShown = false;
-        hasAskedQuestion = false;
-        ensureFreshStartUI();
-    });
+    // ----------------------------------------
+    // Clear chat confirmation (two-click safeguard)
+    // Icon-safe: keep icon, show tooltip instead of changing button text
+    // ----------------------------------------
+    let mivClearArmed = false;
+    let mivClearArmTimer = null;
+
+    function resetClearConfirmUI() {
+        mivClearArmed = false;
+
+        if (mivClearArmTimer) {
+            clearTimeout(mivClearArmTimer);
+            mivClearArmTimer = null;
+        }
+
+        if (clearBtn) {
+            clearBtn.classList.remove("miv-clear-armed");
+            clearBtn.removeAttribute("data-confirm");
+            // restore original accessible label if you had one
+            if (clearBtn.dataset && clearBtn.dataset.originalAriaLabel) {
+                clearBtn.setAttribute("aria-label", clearBtn.dataset.originalAriaLabel);
+            } else {
+                clearBtn.setAttribute("aria-label", "Clear chat");
+            }
+        }
+    }
+
+    // store original aria-label once (safe)
+    if (clearBtn && clearBtn.dataset && !clearBtn.dataset.originalAriaLabel) {
+        const existing = clearBtn.getAttribute("aria-label") || "Clear chat";
+        clearBtn.dataset.originalAriaLabel = existing;
+    }
+
+    // Guard: only attach if button exists
+    if (clearBtn) {
+        clearBtn.addEventListener("click", () => {
+            // First click: arm the clear action (no data loss yet)
+            if (!mivClearArmed) {
+                mivClearArmed = true;
+
+                // Visual cue + tooltip text (CSS will display this)
+                clearBtn.classList.add("miv-clear-armed");
+                clearBtn.setAttribute("data-confirm", "Click again to clear");
+
+                // Improve SR clarity without changing visuals
+                clearBtn.setAttribute("aria-label", "Click again to clear chat");
+
+                // Timeout safety: reset if user does nothing for ~4–5s
+                if (mivClearArmTimer) clearTimeout(mivClearArmTimer);
+                mivClearArmTimer = setTimeout(() => {
+                    resetClearConfirmUI();
+                }, 4500);
+
+                return;
+            }
+
+            // Second click: perform the existing clear behaviour (UNCHANGED)
+            resetClearConfirmUI();
+
+            clearHistory();
+            messagesEl.innerHTML = "";
+            intent = null;
+            isLoading = false;
+            removeTypingIndicator();
+            historyStack = [];
+            futureStack = [];
+            currentState = { intent: null, message: null };
+            welcomeShown = false;
+            hasAskedQuestion = false;
+            ensureFreshStartUI();
+        });
+    }
 
     /* -----------------------------
        Chat controls
@@ -892,7 +944,7 @@
 
         updateNavigationButtons();
 
-        // NEW: ensure quick area is sized correctly on open
+        // ensure quick area is sized correctly on open
         adjustQuickWrapScroll();
 
         input.focus();
@@ -901,6 +953,10 @@
     function closeChat() {
         // Save current size on close
         saveSize();
+
+        // Reset "armed" clear state so it never sticks if you close the widget
+        resetClearConfirmUI();
+
         removeTempMessages();
         chatWindow.classList.remove("miv-chat-window--open");
         chatWindow.setAttribute("aria-hidden", "true");
@@ -1041,8 +1097,8 @@
         if (isChatOpen()) saveSize();
     });
 
-        /* -----------------------------
-    Resize chat when browser resizes
+    /* -----------------------------
+       Resize chat when browser resizes
     ----------------------------- */
     let mivResizeRAF = null;
 
@@ -1077,6 +1133,6 @@
     applyFontScale();
     applyContrast();
 
-    // NEW: size quickWrap correctly on load (helps first-open sizing)
+    // size quickWrap correctly on load (helps first-open sizing)
     adjustQuickWrapScroll();
 })();
