@@ -262,51 +262,65 @@ async def ingest_endpoint(file: UploadFile = File(...), target_index: str = "kb"
         )
 
     try:
-        # -----------------------------
-        # CLEAN EXISTING VECTORS
-        # -----------------------------
-        try:
-            index_target.delete(filter={"source": filename})
-        except Exception:
-            pass
-
+        # Read file bytes first
         file_bytes = await file.read()
         paragraph_chunks = []
 
-       # =========================================================
+        # =========================================================
         # KB INGESTION (FALLBACK HEADINGS)
         # =========================================================
         if target_index != "km":
+            print(f"📄 Processing KB file: {filename}")
 
             if filename.lower().endswith('.pdf'):
+                print("  Extracting PDF paragraphs...")
                 paragraphs = extract_pdf_paragraphs_with_headings(file_bytes)
                 paragraph_chunks_raw = merge_paragraphs_into_chunks(paragraphs)
 
             elif filename.lower().endswith('.docx'):
+                print("  Extracting DOCX paragraphs...")
                 paragraphs = extract_docx_paragraphs_with_headings(file_bytes)
                 paragraph_chunks_raw = merge_paragraphs_into_chunks(paragraphs)
 
-
             elif filename.lower().endswith('.txt'):
+                print("  Extracting TXT paragraphs...")
                 text = file_bytes.decode("utf-8", errors="ignore")
                 paragraphs_raw = [p.strip() for p in text.split("\n\n") if p.strip()]
-                paragraph_chunks_raw = [{"text": p, "heading": None} for p in paragraphs_raw]
+                paragraph_chunks_raw = [
+                    {"text": p, "heading": "No Heading", "paragraph_index": i} 
+                    for i, p in enumerate(paragraphs_raw)
+                ]
 
             elif filename.lower().endswith('.json'):
+                print("  Extracting JSON content...")
                 data = json.loads(file_bytes)
-                paragraph_chunks_raw = [{"text": entry.get("content", ""), "heading": entry.get("topic")} for entry in data]
+                paragraph_chunks_raw = [
+                    {
+                        "text": entry.get("content", ""),
+                        "heading": entry.get("topic", "No Heading"),
+                        "paragraph_index": i
+                    }
+                    for i, entry in enumerate(data)
+                ]
 
+            # Convert paragraph_chunks_raw to paragraph_chunks (THIS WAS MISSING!)
+            for chunk in paragraph_chunks_raw:
+                if chunk.get("text", "").strip():  # Only add non-empty chunks
+                    paragraph_chunks.append(chunk)
 
+            print(f"  ✅ Extracted {len(paragraph_chunks)} chunks")
 
         # =========================================================
         # KM INGESTION
         # =========================================================
         else:
+            print(f"🗺️ Processing KM file: {filename}")
             km_data = json.loads(file_bytes)
 
             for i, entry in enumerate(km_data):
                 text_for_embedding = entry.get("text_to_embed", "").strip()
                 if not text_for_embedding:
+                    print(f"  ⚠️ Skipping entry {i}: no text_to_embed")
                     continue
 
                 paragraph_chunks.append({
@@ -318,24 +332,47 @@ async def ingest_endpoint(file: UploadFile = File(...), target_index: str = "kb"
                         "tool_name": entry.get("tool_name", ""),
                         "url": entry.get("url") or entry.get("URL", ""),
                         "text_to_embed": text_for_embedding
-                        
                     }
                 })
+
+            print(f"  ✅ Extracted {len(paragraph_chunks)} KM entries")
+
+        # Check if we have chunks before deleting
+        if not paragraph_chunks:
+            raise HTTPException(
+                status_code=400,
+                detail=f"No valid content extracted from {filename}. File may be empty or corrupted."
+            )
+
+        # -----------------------------
+        # CLEAN EXISTING VECTORS (only after successful extraction)
+        # -----------------------------
+        print(f"🗑️ Deleting existing vectors for: {filename}")
+        try:
+            index_target.delete(filter={"source": filename})
+        except Exception as e:
+            print(f"  ⚠️ Could not delete existing vectors: {e}")
 
         # =========================================================
         # EMBEDDING + UPSERT
         # =========================================================
+        print(f"🔄 Embedding and upserting {len(paragraph_chunks)} chunks...")
         vectors_to_upsert = []
 
         for chunk in paragraph_chunks:
             text = chunk["text"]
             para_idx = chunk["paragraph_index"]
 
-            embedding_response = client.models.embed_content(
-                model=EMBED_MODEL_NAME,
-                contents=text
-            )
-            vector = embedding_response.embeddings[0].values
+            # Generate embedding
+            try:
+                embedding_response = client.models.embed_content(
+                    model=EMBED_MODEL_NAME,
+                    contents=text
+                )
+                vector = embedding_response.embeddings[0].values
+            except Exception as e:
+                print(f"  ❌ Error embedding chunk {para_idx}: {e}")
+                continue
 
             # -----------------------------
             # KB UPSERT (CLEAN)
@@ -348,7 +385,7 @@ async def ingest_endpoint(file: UploadFile = File(...), target_index: str = "kb"
                     vector,
                     {
                         "text": text,
-                        "heading": chunk.get("heading"),
+                        "heading": chunk.get("heading", "No Heading"),
                         "source": filename
                     }
                 ))
@@ -358,7 +395,7 @@ async def ingest_endpoint(file: UploadFile = File(...), target_index: str = "kb"
             # -----------------------------
             else:
                 metadata = chunk["metadata"]
-                chunk_id = f"km-{para_idx}"
+                chunk_id = f"km-{filename}-{para_idx}"
 
                 vectors_to_upsert.append((
                     chunk_id,
@@ -375,11 +412,16 @@ async def ingest_endpoint(file: UploadFile = File(...), target_index: str = "kb"
             # Batch upsert
             if len(vectors_to_upsert) >= BATCH_SIZE:
                 index_target.upsert(vectors=vectors_to_upsert)
+                print(f"  📤 Upserted batch of {len(vectors_to_upsert)} vectors")
                 vectors_to_upsert = []
 
         # Final flush
         if vectors_to_upsert:
             index_target.upsert(vectors=vectors_to_upsert)
+            print(f"  📤 Upserted final batch of {len(vectors_to_upsert)} vectors")
+
+        elapsed = time.time() - start_time
+        print(f"✅ Ingestion complete in {elapsed:.2f}s")
 
         return IngestResponse(
             success=True,
@@ -388,8 +430,26 @@ async def ingest_endpoint(file: UploadFile = File(...), target_index: str = "kb"
             filename=filename
         )
 
+    except json.JSONDecodeError as e:
+        print(f"❌ JSON parsing error: {e}")
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid JSON file: {str(e)}"
+        )
+    except UnicodeDecodeError as e:
+        print(f"❌ Text encoding error: {e}")
+        raise HTTPException(
+            status_code=400,
+            detail=f"File encoding error. Please ensure file is UTF-8 encoded: {str(e)}"
+        )
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        print(f"❌ Unexpected error during ingestion: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error processing file: {str(e)}"
+        )
 
 
 # -----------------------
