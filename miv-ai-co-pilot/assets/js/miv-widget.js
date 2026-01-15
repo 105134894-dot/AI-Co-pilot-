@@ -257,9 +257,26 @@
     function clampChatToViewport({ persist = false } = {}) {
         if (!chatWindow) return;
 
-        const rect = chatWindow.getBoundingClientRect();
-        const currentW = parseFloat(chatWindow.style.width) || rect.width;
-        const currentH = parseFloat(chatWindow.style.height) || rect.height;
+        // SOLUTION 2: Prefer explicit styles over getBoundingClientRect
+        const styleW = parseFloat(chatWindow.style.width);
+        const styleH = parseFloat(chatWindow.style.height);
+
+        let currentW, currentH;
+        
+        // Use explicit style first, fall back to getBoundingClientRect, then to sensible defaults
+        if (Number.isFinite(styleW) && styleW > 0) {
+            currentW = styleW;
+        } else {
+            const rect = chatWindow.getBoundingClientRect();
+            currentW = rect.width > 0 ? rect.width : 640; // Better fallback
+        }
+
+        if (Number.isFinite(styleH) && styleH > 0) {
+            currentH = styleH;
+        } else {
+            const rect = chatWindow.getBoundingClientRect();
+            currentH = rect.height > 0 ? rect.height : 420; // Better fallback
+        }
 
         const nextW = clamp(currentW, 360, getMaxW());
         const nextH = clamp(currentH, 360, getMaxH());
@@ -961,6 +978,12 @@
     }
 
     function openChat() {
+        // SOLUTION 1: Make the window visible FIRST so measurements work correctly
+        chatWindow.classList.add("miv-chat-window--open");
+        chatWindow.setAttribute("aria-hidden", "false");
+        launcherBtn.style.display = "none";
+        
+        // NOW apply sizing - measurements will be accurate because window is visible
         // If no saved size exists (fresh install), apply a sensible default
         applyDefaultSizeIfNone();
         // Apply saved size each time the chat opens
@@ -969,9 +992,6 @@
         // Ensure saved size never exceeds current viewport (and never collapses)
         clampChatToViewport({ persist: false });
 
-        chatWindow.classList.add("miv-chat-window--open");
-        chatWindow.setAttribute("aria-hidden", "false");
-        launcherBtn.style.display = "none";
         a11yPanel.setAttribute("hidden", "true");
 
         if (!intent && loadHistory().length === 0) {
