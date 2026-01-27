@@ -116,19 +116,56 @@
     display: flex;
 }
 
-/* Invisible resize hit area – no visual clutter */
+/* Resize handle with visible grip icon */
 .miv-resize-handle {
     position: absolute;
     top: 0;
     left: 0;
-    width: 18px;
-    height: 18px;
+    width: 24px;
+    height: 24px;
     cursor: nwse-resize;
     z-index: 20;
-    background: transparent;
+    background: var(--miv-bg, #0e5c82);
+    border-bottom-right-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0.7;
+    transition: opacity 0.2s ease, background 0.2s ease;
 }
 
-.miv-chat-window:hover .miv-resize-handle::before {
+.miv-resize-handle:hover {
+    opacity: 1;
+    background: color-mix(in srgb, var(--miv-bg, #0e5c82) 85%, black);
+}
+
+/* Resize grip icon using diagonal lines */
+.miv-resize-handle::before {
+    content: '';
+    position: absolute;
+    top: 5px;
+    left: 5px;
+    width: 10px;
+    height: 10px;
+    background:
+        linear-gradient(135deg,
+            transparent 30%,
+            var(--miv-header-text, #fff) 30%,
+            var(--miv-header-text, #fff) 40%,
+            transparent 40%,
+            transparent 55%,
+            var(--miv-header-text, #fff) 55%,
+            var(--miv-header-text, #fff) 65%,
+            transparent 65%,
+            transparent 80%,
+            var(--miv-header-text, #fff) 80%,
+            var(--miv-header-text, #fff) 90%,
+            transparent 90%
+        );
+    opacity: 0.9;
+}
+
+.miv-resize-handle:hover::before {
     opacity: 1;
 }
 
